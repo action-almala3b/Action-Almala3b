@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Action Almala3b - أكشن الملاعب - لعبة كروت اون لاين ممتعة العب مع أصحابك">
+<meta name="robots" content="index, follow">
+<meta name="google-site-verification" content="pT0r9aOtOEUnhnaMHXHs6EqyYaIYbml9xp5ov12OUlA" />
+<title>Action Almala3b - أكشن الملاعب</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@700&family=Orbitron:wght@900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body { 
+    background: #0f2027;
+    background: linear-gradient(180deg, #0f2027 0%, #203a43 40%, #111c22 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden; /* لمنع السكرول بما إن الصفحة بقت بسيطة */
+  }
+
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 20px;
+    width: 100%;
+  }
+
+  .logo-wrap { 
+    margin-bottom: 40px; 
+    width: 100%; 
+    max-width: 450px; /* كبرت اللوجو شوية بما إنه بقى البطل الوحيد */
+  }
+  
+  .logo-wrap svg { 
+    width: 100%; 
+    height: auto; 
+    filter: drop-shadow(0 0 25px rgba(0,229,255,0.45)); 
+  }
+
+  .play-btn {
+    display: inline-block;
+    padding: 20px 70px;
+    background: #00e5ff;
+    color: #0a1a22;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(20px, 4vw, 26px);
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-decoration: none;
+    border-radius: 12px;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 25px rgba(0,229,255,0.35);
+    text-transform: uppercase;
+  }
+
+  .play-btn:hover {
+    background: #33ecff;
+    transform: translateY(-5px);
+    box-shadow: 0 10px 40px rgba(0,229,255,0.5);
+    color: #0a1a22;
+  }
+
+  .footer-text {
+    position: absolute;
+    bottom: 20px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="logo-wrap">
+    <svg viewBox="0 0 340 160" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00e5ff"/><stop offset="50%" stop-color="#0088aa"/><stop offset="100%" stop-color="#00e5ff"/>
+        </linearGradient>
+        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#071820"/><stop offset="100%" stop-color="#0d2a35"/>
+        </linearGradient>
+        <linearGradient id="actionGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#ccf5ff"/>
+        </linearGradient>
+        <linearGradient id="subGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#00e5ff"/><stop offset="50%" stop-color="#33f0ff"/><stop offset="100%" stop-color="#00c8e0"/>
+        </linearGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glowStrong"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <polygon points="18,4 322,4 336,18 336,142 322,156 18,156 4,142 4,18" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="2"/>
+      <text x="170" y="85" font-family="Orbitron, sans-serif" font-size="52" font-weight="900" fill="url(#actionGrad)" text-anchor="middle" filter="url(#glow)" letter-spacing="6">ACTION</text>
+      <text x="170" y="130" font-family="Rajdhani, sans-serif" font-size="30" font-weight="700" fill="url(#subGrad)" text-anchor="middle" filter="url(#glowStrong)" letter-spacing="10">ALMALA3B</text>
+    </svg>
+  </div>
+
+  <a href="https://action-almala3b-production.up.railway.app/" class="play-btn">▶ Play Now</a>
+
+  <div class="footer-text">&copy; 2026 Action Almala3b</div>
+</div>
+
+</body>
+</html>
