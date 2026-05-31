@@ -4,7 +4,7 @@
 // ============================================================
 
 const SUPABASE_URL = 'https://vhhfqgcttdhmectwbhnh.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_og2Q6czrLmv2s6jRjrk6Yw_LPFrizOf';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZoaGZxZ2N0dGRobWVjdHdiaG5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyMzAzODIsImV4cCI6MjA5NTgwNjM4Mn0.2OHAv7g9v3VCyafBvYZB41IEbakyYOdVL3Xu1YJStRw';
 
 // دعم supabase-js CDN — createClient موجودة على window.supabase.createClient
 function _initSupabase() {
