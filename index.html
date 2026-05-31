@@ -931,11 +931,15 @@ function playAgainWithAd() {
 }
 
 function createRoomWithAd() {
-  createRoom();
+  if (typeof createRoom === 'function') createRoom();
+  else if (typeof window.createRoom === 'function') window.createRoom();
+  else setTimeout(createRoomWithAd, 200);
 }
 
 function joinRoomWithAd() {
-  joinRoom();
+  if (typeof joinRoom === 'function') joinRoom();
+  else if (typeof window.joinRoom === 'function') window.joinRoom();
+  else setTimeout(joinRoomWithAd, 200);
 }
 
 function selectLanguage(lang) {
