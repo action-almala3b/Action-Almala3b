@@ -259,7 +259,6 @@ function applySpecialClient(players, card, fromIdx, targetPlayerIdx, targetCardI
 
 async function createRoom() {
   const name = getPlayerNameInput();
-  alert('createRoom شغالة! الاسم: ' + name);
   if (!name) return showToast(t('enterName'), true);
   myName = name;
   isRoomOwner = true;
@@ -744,6 +743,8 @@ function joinRoomWithAd()   { joinRoom(); }
 
 // تصدير الدوال للـ HTML لو استخدمت onclick="..."
 window.createRoom      = createRoom;
+window._doCreateRoom   = createRoom;
+window._doJoinRoom     = joinRoom;
 window.joinRoom        = joinRoom;
 window.createRoomWithAd = createRoomWithAd;
 window.joinRoomWithAd   = joinRoomWithAd;

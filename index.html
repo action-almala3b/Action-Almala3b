@@ -536,10 +536,10 @@ html,body { width:100%; height:100%; overflow:hidden; background:#000000; font-f
   <div><div class="logo-title">Action <span>Almala3b</span></div><div class="logo-sub" id="logoSub">ONLINE CARD GAME</div></div>
   <div class="input-group">
     <input class="inp" id="playerName" placeholder="Your Name" maxlength="15">
-    <button class="btn btn-primary" onclick="createRoomWithAd()" id="createRoomBtn">🏟️ Create Room</button>
+    <button class="btn btn-primary" onclick="window._doCreateRoom()" id="createRoomBtn">🏟️ Create Room</button>
     <div class="or-divider" id="orDivider">— or —</div>
     <input class="inp" id="joinCode" placeholder="Room Code (6 digits)" maxlength="6" inputmode="numeric">
-    <button class="btn btn-outline" onclick="joinRoomWithAd()" id="joinRoomBtn">🔗 Join Room</button>
+    <button class="btn btn-outline" onclick="window._doJoinRoom()" id="joinRoomBtn">🔗 Join Room</button>
   </div>
 </div>
 
@@ -931,15 +931,11 @@ function playAgainWithAd() {
 }
 
 function createRoomWithAd() {
-  if (typeof createRoom === 'function') createRoom();
-  else if (typeof window.createRoom === 'function') window.createRoom();
-  else setTimeout(createRoomWithAd, 200);
+  createRoom();
 }
 
 function joinRoomWithAd() {
-  if (typeof joinRoom === 'function') joinRoom();
-  else if (typeof window.joinRoom === 'function') window.joinRoom();
-  else setTimeout(joinRoomWithAd, 200);
+  joinRoom();
 }
 
 function selectLanguage(lang) {
@@ -1691,7 +1687,7 @@ function sendQuickMsg(text){
 
 
 
-<script src="/game.js" defer></script>
+<script src="/game.js"></script>
 <script>
 window.addEventListener('load', function(){
   function createRoomWithAd() { createRoom(); }
