@@ -536,10 +536,10 @@ html,body { width:100%; height:100%; overflow:hidden; background:#000000; font-f
   <div><div class="logo-title">Action <span>Almala3b</span></div><div class="logo-sub" id="logoSub">ONLINE CARD GAME</div></div>
   <div class="input-group">
     <input class="inp" id="playerName" placeholder="Your Name" maxlength="15">
-    <button class="btn btn-primary" onclick="window._doCreateRoom()" id="createRoomBtn">🏟️ Create Room</button>
+    <button class="btn btn-primary" onclick="createRoomWithAd()" id="createRoomBtn">🏟️ Create Room</button>
     <div class="or-divider" id="orDivider">— or —</div>
     <input class="inp" id="joinCode" placeholder="Room Code (6 digits)" maxlength="6" inputmode="numeric">
-    <button class="btn btn-outline" onclick="window._doJoinRoom()" id="joinRoomBtn">🔗 Join Room</button>
+    <button class="btn btn-outline" onclick="joinRoomWithAd()" id="joinRoomBtn">🔗 Join Room</button>
   </div>
 </div>
 
@@ -953,13 +953,13 @@ function updateUILanguage() {
   const playerNameEl = document.getElementById('playerName');
   if(playerNameEl) playerNameEl.placeholder = t('playerNamePlaceholder');
   const createRoomBtnEl = document.getElementById('createRoomBtn');
-  if(createRoomBtnEl) createRoomBtnEl.innerHTML = t('createRoomBtn');
+  if(createRoomBtnEl) createRoomBtnEl.textContent = t('createRoomBtn');
   const orDividerEl = document.getElementById('orDivider');
   if(orDividerEl) orDividerEl.textContent = t('orDivider');
   const joinCodeEl = document.getElementById('joinCode');
   if(joinCodeEl) joinCodeEl.placeholder = t('joinCodePlaceholder');
   const joinRoomBtnEl = document.getElementById('joinRoomBtn');
-  if(joinRoomBtnEl) joinRoomBtnEl.innerHTML = t('joinRoomBtn');
+  if(joinRoomBtnEl) joinRoomBtnEl.textContent = t('joinRoomBtn');
   
   // Waiting
   const roomCodeLabelEl = document.getElementById('roomCodeLabel');
