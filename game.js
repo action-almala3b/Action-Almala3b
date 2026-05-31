@@ -6,12 +6,18 @@
 const SUPABASE_URL = 'https://vhhfqgcttdhmectwbhnh.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_og2Q6czrLmv2s6jRjrk6Yw_LPFrizOf';
 
-// دعم مكتبة supabase-js سواء CDN أو ESM
-const _supabaseLib = window.supabase || window.Supabase;
-if (!_supabaseLib) console.error('❌ مكتبة supabase-js مش محملة! أضف: <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>');
-const supabase = _supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY, {
-  realtime: { params: { eventsPerSecond: 10 } }
-});
+// دعم supabase-js CDN — createClient موجودة على window.supabase.createClient
+function _initSupabase() {
+  if (window.supabase && typeof window.supabase.createClient === 'function')
+    return window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { realtime: { params: { eventsPerSecond: 10 } } });
+  if (window.Supabase && typeof window.Supabase.createClient === 'function')
+    return window.Supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { realtime: { params: { eventsPerSecond: 10 } } });
+  if (typeof window.createClient === 'function')
+    return window.createClient(SUPABASE_URL, SUPABASE_KEY, { realtime: { params: { eventsPerSecond: 10 } } });
+  alert('خطأ: مكتبة Supabase مش محملة! تأكد من الـ CDN في الـ HTML');
+  return null;
+}
+const supabase = _initSupabase();
 
 // helper: يقرأ اسم اللاعب من أي id ممكن في الـ HTML
 function getPlayerNameInput() {
