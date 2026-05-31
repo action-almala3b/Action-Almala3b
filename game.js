@@ -6,7 +6,20 @@
 const SUPABASE_URL = 'https://vhhfqgcttdhmectwbhnh.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_og2Q6czrLmv2s6jRjrk6Yw_LPFrizOf';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// دعم مكتبة supabase-js سواء CDN أو ESM
+const _supabaseLib = window.supabase || window.Supabase;
+if (!_supabaseLib) console.error('❌ مكتبة supabase-js مش محملة! أضف: <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>');
+const supabase = _supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  realtime: { params: { eventsPerSecond: 10 } }
+});
+
+// helper: يقرأ اسم اللاعب من أي id ممكن في الـ HTML
+function getPlayerNameInput() {
+  const el = document.getElementById('name-input')
+           || document.getElementById('playerName')
+           || document.getElementById('player-name');
+  return el ? el.value.trim() : '';
+}
 
 // ID عشوائي لكل لاعب بدل socket.id
 const mySocketId = Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
@@ -239,46 +252,84 @@ function applySpecialClient(players, card, fromIdx, targetPlayerIdx, targetCardI
 // ============================================================
 
 async function createRoom() {
-  const name = document.getElementById('playerName').value.trim();
+  const name = getPlayerNameInput();
   if (!name) return showToast(t('enterName'), true);
   myName = name;
   isRoomOwner = true;
+
+  // كود 6 أرقام عشوائي
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   roomCode = code;
+
   const player = {
     socketId: mySocketId, name: myName,
     hand: [], field: { GK: [], DEF: [], MID: [], ATK: [] },
     yellows: {}, loanedCards: [], skipped: false,
     _placedThisTurn: 0, _drawnThisTurn: 0
   };
+
   const { error } = await supabase.from('rooms').insert({
-    code, state: 'waiting', players: [player],
-    deck: [], turn: 0, first_turn: true,
-    discard_pile: [], burned_pile: []
+    code,
+    state: 'waiting',
+    players: [player],
+    deck: [],
+    turn: 0,
+    first_turn: true,
+    pending_special: null,
+    discard_pile: [],
+    burned_pile: []
   });
-  if (error) return showToast('خطأ في الإنشاء! ' + error.message, true);
-  document.getElementById('displayCode').textContent = code;
+
+  if (error) return showToast('❌ خطأ في إنشاء الغرفة: ' + error.message, true);
+
+  // اعرض الكود للـ host
+  const displayEl = document.getElementById('displayCode') || document.getElementById('room-code');
+  if (displayEl) displayEl.textContent = code;
+
   subscribeToRoom(code);
   showScreen('waiting');
 }
 
 async function joinRoom() {
-  const name = document.getElementById('playerName').value.trim();
-  const code = document.getElementById('joinCode').value.trim();
-  if (!name || !code) return showToast(t('enterNameAndCode'), true);
-  myName = name; roomCode = code;
-  const { data: room, error } = await supabase.from('rooms').select('*').eq('code', code).single();
-  if (error || !room) return showToast('الغرفة مش موجودة', true);
-  if (room.state !== 'waiting') return showToast('اللعبة بدأت فعلاً', true);
-  if (room.players.length >= 4) return showToast('الغرفة ممتلئة', true);
-  const player = {
-    socketId: mySocketId, name: myName,
-    hand: [], field: { GK: [], DEF: [], MID: [], ATK: [] },
-    yellows: {}, loanedCards: [], skipped: false,
-    _placedThisTurn: 0, _drawnThisTurn: 0
-  };
-  const newPlayers = [...room.players, player];
-  await supabase.from('rooms').update({ players: newPlayers }).eq('code', code);
+  const name = getPlayerNameInput();
+  const codeEl = document.getElementById('joinCode') || document.getElementById('join-code') || document.getElementById('room-code-input');
+  const code = codeEl ? codeEl.value.trim() : '';
+
+  if (!name) return showToast(t('enterName') || 'اكتب اسمك الأول', true);
+  if (!code) return showToast('اكتب كود الغرفة', true);
+
+  myName = name;
+  roomCode = code;
+
+  // تحقق إن الغرفة موجودة
+  const { data: room, error } = await supabase
+    .from('rooms')
+    .select('*')
+    .eq('code', code)
+    .maybeSingle();           // ← maybeSingle بدل single عشان ميكسرش لو مفيش نتيجة
+
+  if (error)  return showToast('❌ خطأ في الاتصال: ' + error.message, true);
+  if (!room)  return showToast('❌ الغرفة مش موجودة، تأكد من الكود', true);
+  if (room.state !== 'waiting') return showToast('⛔ اللعبة بدأت فعلاً', true);
+  if (room.players.length >= 4) return showToast('⛔ الغرفة ممتلئة (4/4)', true);
+
+  // تأكد إن اللاعب مش مسجّل قبل كده (reload مثلاً)
+  const alreadyIn = room.players.some(p => p.socketId === mySocketId);
+  if (!alreadyIn) {
+    const player = {
+      socketId: mySocketId, name: myName,
+      hand: [], field: { GK: [], DEF: [], MID: [], ATK: [] },
+      yellows: {}, loanedCards: [], skipped: false,
+      _placedThisTurn: 0, _drawnThisTurn: 0
+    };
+    const newPlayers = [...room.players, player];
+    const { error: updateErr } = await supabase
+      .from('rooms')
+      .update({ players: newPlayers })
+      .eq('code', code);
+    if (updateErr) return showToast('❌ خطأ في الانضمام: ' + updateErr.message, true);
+  }
+
   subscribeToRoom(code);
   showScreen('waiting');
 }
@@ -294,27 +345,68 @@ async function startGame() {
 }
 
 function subscribeToRoom(code) {
-  if (roomChannel) supabase.removeChannel(roomChannel);
+  // إلغاء الاشتراك القديم لو موجود
+  if (roomChannel) {
+    supabase.removeChannel(roomChannel);
+    roomChannel = null;
+  }
+
   roomChannel = supabase
-    .channel('room-' + code)
+    .channel('room-' + code, { config: { broadcast: { self: false } } })
+
+    // ✅ Realtime: أي UPDATE على صف الغرفة
     .on('postgres_changes', {
-      event: 'UPDATE', schema: 'public', table: 'rooms', filter: `code=eq.${code}`
-    }, (payload) => { handleRoomUpdate(payload.new); })
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'rooms',
+      filter: `code=eq.${code}`
+    }, (payload) => {
+      handleRoomUpdate(payload.new);
+    })
+
+    // ✅ Realtime: لو غرفة جديدة اتعملت (للتأكد)
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'rooms',
+      filter: `code=eq.${code}`
+    }, (payload) => {
+      handleRoomUpdate(payload.new);
+    })
+
+    // 💬 الشات
     .on('broadcast', { event: 'chat' }, ({ payload }) => {
       if (payload.name !== myName) addChatMsg(payload.name, payload.text, false, false);
     })
+
+    // ⚡ كارت خاص معلّق (Cancel Order)
     .on('broadcast', { event: 'special_pending' }, ({ payload }) => {
       handleSpecialPending(payload);
     })
+
+    // ❌ إلغاء الكارت الخاص
     .on('broadcast', { event: 'special_cancelled' }, ({ payload }) => {
       showToast(t('specialCancelled', payload.by));
     })
+
+    // 🚫 تخطي الدور (Offside)
     .on('broadcast', { event: 'turn_skipped' }, ({ payload }) => {
       if (payload.socketId === mySocketId) {
         showToast('🚫 دورك اتخطى! لاعب استخدم عليك كارت تسلل', true);
       }
     })
-    .subscribe();
+
+    .subscribe((status, err) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('✅ Realtime متصل على الغرفة:', code);
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        console.error('❌ Realtime connection error:', status, err);
+        // إعادة المحاولة بعد 3 ثواني
+        setTimeout(() => subscribeToRoom(code), 3000);
+      } else if (status === 'CLOSED') {
+        console.warn('⚠️ Realtime channel closed');
+      }
+    });
 }
 
 function handleRoomUpdate(room) {
@@ -637,5 +729,24 @@ function copyCode() {
   showToast(t('codeCopied'));
 }
 
+// ============================================================
+// Aliases — للتوافق مع أي HTML بيستخدم أسماء تانية
+// ============================================================
 function createRoomWithAd() { createRoom(); }
-function joinRoomWithAd() { joinRoom(); }
+function joinRoomWithAd()   { joinRoom(); }
+
+// تصدير الدوال للـ HTML لو استخدمت onclick="..."
+window.createRoom      = createRoom;
+window.joinRoom        = joinRoom;
+window.createRoomWithAd = createRoomWithAd;
+window.joinRoomWithAd   = joinRoomWithAd;
+window.startGame       = startGame;
+window.drawCard        = drawCard;
+window.endTurn         = endTurn;
+window.placeCard       = placeCard;
+window.moveJoker       = moveJoker;
+window.playSpecial     = playSpecial;
+window.cancelOrder     = cancelOrder;
+window.playAgainWithAd = playAgainWithAd;
+window.sendChatMsg     = sendChatMsg;
+window.copyCode        = copyCode;
