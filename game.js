@@ -3,8 +3,8 @@
 // ضع SUPABASE_URL و SUPABASE_KEY الخاصين بك
 // ============================================================
 
-const SUPABASE_URL = 'https://hjxohmxuafflqrgeosqe.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_97XwX3uaYv3KFdbhidCSKg_Xr5o-2wI';
+const SUPABASE_URL = 'https://vhhfqgcttdhmectwbhnh.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_og2Q6czrLmv2s6jRjrk6Yw_LPFrizOf';
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
