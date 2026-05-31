@@ -259,6 +259,7 @@ function applySpecialClient(players, card, fromIdx, targetPlayerIdx, targetCardI
 
 async function createRoom() {
   const name = getPlayerNameInput();
+  alert('createRoom شغالة! الاسم: ' + name);
   if (!name) return showToast(t('enterName'), true);
   myName = name;
   isRoomOwner = true;
