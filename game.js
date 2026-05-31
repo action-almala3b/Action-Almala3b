@@ -758,3 +758,119 @@ window.cancelOrder     = cancelOrder;
 window.playAgainWithAd = playAgainWithAd;
 window.sendChatMsg     = sendChatMsg;
 window.copyCode        = copyCode;
+
+// ============================================================
+// RENDERING FUNCTIONS — مطلوبة للعرض
+// ============================================================
+
+function getCardBg(card) {
+  if (!card) return '#1a1a2e';
+  if (card.joker) return 'linear-gradient(135deg,#8e44ad,#6c3483)';
+  if (card.type === 'special') return 'linear-gradient(135deg,#2c3e50,#1a252f)';
+  const map = { GK:'linear-gradient(135deg,#f5a623,#e08800)', DEF:'linear-gradient(135deg,#4a90d9,#2874b5)', MID:'linear-gradient(135deg,#27ae60,#1e8449)', ATK:'linear-gradient(135deg,#e74c3c,#c0392b)' };
+  return map[card.zone] || '#1a1a2e';
+}
+
+function updateDrawCount() {
+  const el = document.getElementById('drawCount') || document.getElementById('drawCount2');
+  if (el) el.textContent = t('drawCount', drawnThisTurn);
+  const deckEl = document.getElementById('deckCount') || document.getElementById('deckCount2');
+  if (deckEl) deckEl.textContent = deckCount;
+  const deckPile = document.getElementById('deckPile');
+  if (deckPile) { if (drawnThisTurn >= 2) deckPile.classList.add('drawn2'); else deckPile.classList.remove('drawn2'); }
+  const endBtn = document.getElementById('endTurnBtn') || document.getElementById('endTurnBtn2');
+  if (endBtn) endBtn.disabled = !isMyTurn || turnEnded;
+}
+
+function makeFormCard(card, clickable, zone, oppData) {
+  const el = document.createElement('div');
+  el.className = 'form-card';
+  el.style.background = getCardBg(card);
+  if (card.captain) el.classList.add('captain-card');
+  const imgSrc = getPlayerImage(card);
+  if (imgSrc) { const im = document.createElement('img'); im.src = imgSrc; im.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block;'; im.loading='lazy'; el.appendChild(im); }
+  if (!card.joker && card.number) { const n = document.createElement('span'); n.style.cssText = 'position:absolute;top:2px;left:3px;font-family:Orbitron,sans-serif;font-size:11px;font-weight:900;color:#fff;text-shadow:0 0 5px #000,1px 1px 0 #000;z-index:5;line-height:1;'; n.textContent = card.number; el.appendChild(n); }
+  if (card.star || card.joker) { const s = document.createElement('span'); s.style.cssText = 'position:absolute;top:'+(card.joker?'2px':'14px')+';left:2px;font-size:6px;color:#ffd700;z-index:5;'; s.textContent='⭐'; el.appendChild(s); }
+  if (card.type==='special') { const n=document.createElement('span'); n.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:6px;color:#fff;text-align:center;padding:2px;z-index:5;font-family:Tajawal,sans-serif;font-weight:700;line-height:1.2;'; n.textContent=currentLang==='ar'?t(card.name||''):(card.name||'?'); el.appendChild(n); }
+  const yellows = oppData ? oppData.yellows : myYellows;
+  if (yellows && yellows[card.id]) { const y=document.createElement('div'); y.className='yellow-mark'; el.appendChild(y); }
+  if (oppData && isMyTurn) {
+    el.style.cursor='pointer';
+    el.onclick=(e)=>{ e.stopPropagation(); if(!selectedCard||selectedCard.type!=='special'){showToast(t('selectSpecialFirst'),true);return;} handleOppCardClick(card,oppData); };
+  } else if (clickable && isMyTurn) {
+    el.onclick=()=>{ if(selectedCard&&selectedCard.type!=='special'){ const tz=selectedCard.zone==='JOKER'?zone:selectedCard.zone; if(tz===zone){placeCard(selectedCard.id,zone);selectedCard=null;} else showToast(t('mustPlaceCorrect',t(selectedCard.zone)),true); } };
+  }
+  return el;
+}
+
+function renderMyFormation() {
+  ['GK','DEF','MID','ATK'].forEach(zone=>{
+    const row=document.getElementById('my-row-'+zone); if(!row)return;
+    row.innerHTML='';
+    (myField[zone]||[]).forEach(card=>row.appendChild(makeFormCard(card,true,zone,null)));
+    if(isMyTurn){ const fc=Object.values(myField).reduce((s,z)=>s+z.length,0); if(fc<11){const d=document.createElement('div');d.className='form-drop';d.textContent='+';d.onclick=()=>{if(selectedCard&&selectedCard.type!=='special'){const tz=selectedCard.zone==='JOKER'?zone:selectedCard.zone;if(tz===zone){placeCard(selectedCard.id,zone);selectedCard=null;}else showToast(t('mustPlaceCorrect',t(selectedCard.zone)),true);}};row.appendChild(d);} }
+  });
+}
+
+function renderGame() {
+  const twoP=document.getElementById('two-player-layout');
+  const actionBar=document.getElementById('action-bar-2p');
+  const mySecOld=document.getElementById('my-section-old');
+  const midOld=document.getElementById('middle-zone-old');
+  if(numPlayers===2){
+    if(twoP)twoP.style.display='flex'; if(actionBar)actionBar.style.display='flex';
+    if(mySecOld)mySecOld.style.display='none'; if(midOld)midOld.style.display='none';
+  } else {
+    if(twoP)twoP.style.display='none'; if(actionBar)actionBar.style.display='none';
+    if(mySecOld)mySecOld.style.display='block'; if(midOld)midOld.style.display='block';
+  }
+  const badge=document.getElementById('turnIndicator');
+  if(badge){ if(isMyTurn){badge.textContent=t('yourTurn');badge.classList.add('my-turn-pulse');document.getElementById('pitch-bg')?.classList.add('my-turn-glow');}else{const opp=opponents[0]; badge.textContent=(currentLang==='ar'?'دور ':'Turn: ')+(opp?opp.name:'...');badge.classList.remove('my-turn-pulse');document.getElementById('pitch-bg')?.classList.remove('my-turn-glow');} }
+  const nameBar=document.getElementById('myNameBar'); if(nameBar)nameBar.textContent='👤 '+myName;
+  const topName=document.getElementById('topName'); if(topName)topName.textContent='👤 '+myName;
+  renderMyFormation(); renderOppFormation(); renderMyHand(); renderBurnedZone(); updateDrawCount();
+  const endBtn=document.getElementById('endTurnBtn')||document.getElementById('endTurnBtn2');
+  if(endBtn)endBtn.disabled=!isMyTurn||turnEnded;
+}
+
+function trackSpecialPlayed(card) {
+  if(!card)return;
+  playSpecial({ cardId:card.id, targetPlayerIdx:window._targetOppIdx, targetCardId:window._targetCardId, targetZone:window._targetZone, myCardId:window._mySwapCardId });
+  window._targetOppIdx=undefined; window._targetCardId=null; window._targetZone=null; window._mySwapCardId=null;
+}
+
+function showCancelPopup(cardName, fromPlayer, cancelCardId, pendingPayload) {
+  const modal=document.getElementById('cancel-modal'); if(!modal)return;
+  const msgEl=document.getElementById('cancel-msg'); if(msgEl)msgEl.textContent=`${fromPlayer} ${currentLang==='ar'?'لعب':'played'} ${cardName} ${currentLang==='ar'?'عليك!':'on you!'}`;
+  modal.classList.add('show');
+  const bar=document.getElementById('cancel-timer-bar'); if(bar){bar.style.width='100%';setTimeout(()=>bar.style.width='0%',50);}
+  const autoTimer=setTimeout(()=>modal.classList.remove('show'),7500);
+  const yesBtn=document.getElementById('cancelYesBtn'); if(yesBtn)yesBtn.onclick=()=>{clearTimeout(autoTimer);cancelOrder(cancelCardId,pendingPayload);};
+  const noBtn=document.getElementById('cancelNoBtn'); if(noBtn)noBtn.onclick=()=>{clearTimeout(autoTimer);modal.classList.remove('show');};
+}
+
+function handleOppCardClick(card, oppData) {
+  if(!selectedCard||selectedCard.type!=='special')return;
+  const oppIdx=opponents.indexOf(oppData);
+  const realIdx=oppIdx>=myIndex?oppIdx+1:oppIdx;
+  window._targetOppIdx=realIdx; window._targetCardId=card.id; window._targetZone=card.zone==='JOKER'?'ATK':card.zone;
+  const sc=selectedCard;
+  if(sc.name==='Swap'){
+    if(!mySwapCard)return showToast(t('selectYourCardFirst'),true);
+    window._mySwapCardId=mySwapCard.id;
+    playSpecial({cardId:sc.id,targetPlayerIdx:realIdx,targetCardId:card.id,targetZone:window._targetZone,myCardId:mySwapCard.id});
+    mySwapCard=null; selectedCard=null;
+  } else if(sc.name==='Loan'){
+    const myFieldCount=Object.values(myField).reduce((s,z)=>s+z.length,0);
+    const tz=card.zone==='JOKER'?'ATK':card.zone;
+    const ZONE_LIMITS={GK:1,DEF:5,MID:4,ATK:3};
+    if(myFieldCount>=11)return showToast(currentLang==='ar'?'الملعب ممتلئ!':'Field is full!',true);
+    if(myField[tz]&&myField[tz].length>=ZONE_LIMITS[tz])return showToast(currentLang==='ar'?'المركز ممتلئ!':'Zone full!',true);
+    playSpecial({cardId:sc.id,targetPlayerIdx:realIdx,targetCardId:card.id,targetZone:tz,myCardId:null});
+    selectedCard=null;
+  } else {
+    playSpecial({cardId:sc.id,targetPlayerIdx:realIdx,targetCardId:card.id,targetZone:window._targetZone,myCardId:null});
+    selectedCard=null;
+  }
+  renderMyHand();
+}
