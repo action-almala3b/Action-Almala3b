@@ -637,5 +637,5 @@ function copyCode() {
   showToast(t('codeCopied'));
 }
 
-function createRoomWithAd() { showVastAd(() => createRoom()); }
-function joinRoomWithAd() { showVastAd(() => joinRoom()); }
+function createRoomWithAd() { createRoom(); }
+function joinRoomWithAd() { joinRoom(); }

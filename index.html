@@ -1656,26 +1656,6 @@ function sendQuickMsg(text){
   addChatMsg(myName,text,true,false);
 }
 
-const _origROF2=renderOppFormation;
-renderOppFormation=function(){
-  const opp=opponents[0];const bef={};
-  if(opp)['GK','DEF','MID','ATK'].forEach(z=>{bef[z]=(opp.field[z]||[]).length;});
-  _origROF2.apply(this,arguments);
-  if(opp)['GK','DEF','MID','ATK'].forEach(z=>{
-    if((opp.field[z]||[]).length>(bef[z]||0)){
-      const row=document.getElementById('opp-row-'+z);
-      if(row){
-        const cards=row.querySelectorAll('.form-card');const last=cards[cards.length-1];
-        if(last){
-          last.classList.remove('card-placed');void last.offsetWidth;last.classList.add('card-placed');
-          const rr=last.getBoundingClientRect();
-          const zc={GK:'#f5a623',DEF:'#4a90d9',MID:'#27ae60',ATK:'#e74c3c',JOKER:'#8e44ad'};
-          spawnParticles(rr.left+rr.width/2,rr.top+rr.height/2,zc[z]||'#00e5ff',6);
-        }
-      }
-    }
-  });
-};
 
 </script>
 
@@ -1708,5 +1688,34 @@ renderOppFormation=function(){
 
 
 <script src="/game.js"></script>
+<script>
+window.addEventListener('load', function(){
+  function createRoomWithAd() { createRoom(); }
+  function joinRoomWithAd() { joinRoom(); }
+  window.createRoomWithAd = createRoomWithAd;
+  window.joinRoomWithAd = joinRoomWithAd;
+
+  const _origROF2 = renderOppFormation;
+  renderOppFormation = function(){
+    const opp=opponents[0]; const bef={};
+    if(opp)['GK','DEF','MID','ATK'].forEach(z=>{bef[z]=(opp.field[z]||[]).length;});
+    _origROF2.apply(this,arguments);
+    if(opp)['GK','DEF','MID','ATK'].forEach(z=>{
+      if((opp.field[z]||[]).length>(bef[z]||0)){
+        const row=document.getElementById('opp-row-'+z);
+        if(row){
+          const cards=row.querySelectorAll('.form-card'); const last=cards[cards.length-1];
+          if(last){
+            last.classList.remove('card-placed'); void last.offsetWidth; last.classList.add('card-placed');
+            const rr=last.getBoundingClientRect();
+            const zc={GK:'#f5a623',DEF:'#4a90d9',MID:'#27ae60',ATK:'#e74c3c',JOKER:'#8e44ad'};
+            spawnParticles(rr.left+rr.width/2,rr.top+rr.height/2,zc[z]||'#00e5ff',6);
+          }
+        }
+      }
+    });
+  };
+});
+</script>
 </body>
 </html>
