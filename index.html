@@ -268,8 +268,7 @@ html,body { width:100%; height:100%; overflow:hidden; background:#000000; font-f
 .pending-banner { position:fixed; top:10px; left:50%; transform:translateX(-50%); background:rgba(255,165,0,0.2); border:1px solid orange; border-radius:20px; padding:6px 16px; font-size:12px; color:orange; z-index:400; display:none; }
 .pending-banner.show { display:block; }
 
-/* ===== AD / NOTIFICATION FIXES ===== */
-#slider-ad-wrap { position:fixed !important; bottom:0 !important; left:0 !important; right:0 !important; z-index:8000 !important; }
+
 
 /* Legacy - keep for any leftover refs */
 .emoji-large { font-size: clamp(18px, 4vw, 24px); }
@@ -371,19 +370,7 @@ html,body { width:100%; height:100%; overflow:hidden; background:#000000; font-f
 .confetti-p { position:fixed; pointer-events:none; z-index:9998; animation:cfFall linear forwards; }
 @keyframes cfFall { 0%{transform:translateY(-10px) rotate(0deg);opacity:1;} 100%{transform:translateY(110vh) rotate(540deg);opacity:0;} }
 
-/* إخفاء زر الإغلاق في الإعلان الجانبي */
-#slider-ad-wrap button,
-#slider-ad-wrap [class*="close"],
-#slider-ad-wrap [class*="Close"],
-#slider-ad-wrap [id*="close"],
-#slider-ad-wrap [id*="Close"],
-#slider-ad-wrap [aria-label*="close"],
-#slider-ad-wrap [aria-label*="Close"] {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
+
 
 /* ══ FLYING CARD ══ */
 .flying-card {
@@ -529,30 +516,8 @@ html,body { width:100%; height:100%; overflow:hidden; background:#000000; font-f
 </head>
 <body>
 
-<!-- BANNER AD - shown outside game -->
 
 
-<!-- VAST AD OVERLAY -->
-<div id="vast-overlay" style="display:none;position:fixed;inset:0;background:#000;z-index:99999;flex-direction:column;align-items:center;justify-content:center;">
-  <div id="vast-ad-label" style="position:absolute;top:10px;left:12px;font-size:11px;color:rgba(255,255,255,0.5);font-family:Orbitron,sans-serif;letter-spacing:1px;">📢 Ad</div>
-  <video id="vast-video" style="display:none;max-width:100%;max-height:80vh;width:100%;object-fit:contain;cursor:pointer;" playsinline webkit-playsinline></video>
-  <!-- عداد Skip -->
-  <div id="vast-skip-countdown" style="display:none;position:absolute;bottom:20px;right:16px;align-items:center;gap:8px;">
-    <div style="font-size:12px;color:rgba(255,255,255,0.5);font-family:Tajawal,sans-serif;" id="vast-skip-label-text"></div>
-    <div style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:4px 10px;font-size:13px;color:#fff;font-family:Orbitron,sans-serif;" id="vast-skip-timer">5</div>
-  </div>
-  <!-- زر Skip -->
-  <button id="vast-skip" style="display:none;position:absolute;bottom:20px;right:16px;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.5);color:#fff;font-family:Orbitron,sans-serif;font-size:13px;font-weight:700;padding:7px 18px;border-radius:8px;cursor:pointer;letter-spacing:1px;"></button>
-  <!-- رسالة تحذير عند الخروج -->
-  <div id="vast-warn-msg" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.88);flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:30px;z-index:10;">
-    <div style="font-size:36px;">⚠️</div>
-    <div id="vast-warn-text" style="font-family:Tajawal,sans-serif;font-size:17px;color:#fff;text-align:center;line-height:1.7;"></div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
-      <button id="vast-warn-resume" style="background:#00e5ff;color:#000;border:none;font-family:Tajawal,sans-serif;font-size:15px;font-weight:700;padding:10px 24px;border-radius:30px;cursor:pointer;" onclick="document.getElementById('vast-warn-msg').style.display='none'; var v=document.getElementById('vast-video'); if(v && !v.ended) v.play().catch(()=>{});"></button>
-      <button id="vast-warn-exit" style="background:transparent;color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.3);font-family:Tajawal,sans-serif;font-size:14px;padding:10px 20px;border-radius:30px;cursor:pointer;"></button>
-    </div>
-  </div>
-</div>
 
 <!-- LANGUAGE SELECTION SCREEN -->
 <div id="lang-screen">
@@ -561,8 +526,8 @@ html,body { width:100%; height:100%; overflow:hidden; background:#000000; font-f
     <div class="lang-choose-ar">اختر اللغة</div>
   </div>
   <div class="lang-buttons">
-    <button class="lang-btn" onclick="window.open('https://idealistic-revenue.com/bb3BVh0wP.3_pavmbDm/VaJNZoDJ0P2eOXTcgJ3PM-zxIC5rLYTLYQ5MO/DYcQzMMpzrMu','_blank'); selectLanguage('en');">English</button>
-    <button class="lang-btn ar-btn" onclick="window.open('https://idealistic-revenue.com/bb3BVh0wP.3_pavmbDm/VaJNZoDJ0P2eOXTcgJ3PM-zxIC5rLYTLYQ5MO/DYcQzMMpzrMu','_blank'); selectLanguage('ar');">عربي</button>
+    <button class="lang-btn" onclick="selectLanguage('en');">English</button>
+    <button class="lang-btn ar-btn" onclick="selectLanguage('ar');">عربي</button>
   </div>
 </div>
 
@@ -958,261 +923,55 @@ function t(key, ...args) {
   return text;
 }
 
-// ===== VAST AD PLAYER =====
-const VAST_URL = 'https://faithfuloccasion.com/damWF/zXd.GSNjvGZ/GLUb/le/mz9QurZCUklgkSPjT/Ya5YOhDYc_zZNTTMMJtGN-jZkh4lNvzRMN1ENXwj';
-
-// Preload cache
-let _vastPreload = { videoSrc: null, clickUrl: null, ready: false, loading: false };
-
 function hideBannerAd() {}
 function showBannerAd() {}
 
-// تحميل VAST في الخلفية مسبقاً
-function preloadVast() {
-  if (_vastPreload.loading || _vastPreload.ready) return;
-  _vastPreload.loading = true;
-  fetch('/vast')
-    .then(r => r.text())
-    .then(xml => {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(xml, 'text/xml');
-      const mediaFiles = [...doc.querySelectorAll('MediaFile')];
-      const mp4 = mediaFiles.find(m => (m.getAttribute('type')||'').includes('mp4') || (m.getAttribute('codec')||'').includes('h264'));
-      const webm = mediaFiles.find(m => (m.getAttribute('type')||'').includes('webm'));
-      const chosen = mp4 || webm || mediaFiles[0];
-      if (chosen) {
-        let src = chosen.textContent.trim().replace(/\s/g,'').replace(/^<!\[CDATA\[/,'').replace(/\]\]>$/,'').trim();
-        _vastPreload.videoSrc = src;
-        // preload الفيديو نفسه
-        const vid = document.getElementById('vast-video');
-        if (vid && src) {
-          vid.src = src;
-          vid.preload = 'auto';
-          vid.load();
-        }
-      }
-      const clickThrough = doc.querySelector('ClickThrough');
-      if (clickThrough) _vastPreload.clickUrl = clickThrough.textContent.trim().replace(/^<!\[CDATA\[/,'').replace(/\]\]>$/,'').trim();
-      _vastPreload.ready = true;
-      _vastPreload.loading = false;
-    })
-    .catch(() => { _vastPreload.loading = false; });
-}
-
-// ابدأ الـ preload بعد ثانيتين من تحميل الصفحة
-setTimeout(preloadVast, 2000);
-
-// بعد ما الإعلان يخلص أو يتخطى — نفذ الـ callback
-function showVastAd(callback) {
-  const overlay = document.getElementById('vast-overlay');
-  const videoEl = document.getElementById('vast-video');
-  const skipBtn = document.getElementById('vast-skip');
-  const skipTimer = document.getElementById('vast-skip-timer');
-  const adLabel = document.getElementById('vast-ad-label');
-
-  // إظهار الـ overlay فوراً
-  overlay.style.display = 'flex';
-  videoEl.style.display = 'none';
-  skipBtn.style.display = 'none';
-
-  // spinner
-  let spinnerEl = document.getElementById('vast-spinner');
-  if (!spinnerEl) {
-    spinnerEl = document.createElement('div');
-    spinnerEl.id = 'vast-spinner';
-    spinnerEl.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;border:3px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:vastSpin 0.8s linear infinite;';
-    const styleEl = document.createElement('style');
-    styleEl.textContent = '@keyframes vastSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}';
-    document.head.appendChild(styleEl);
-    overlay.appendChild(spinnerEl);
-  }
-  spinnerEl.style.display = 'block';
-  adLabel.textContent = currentLang === 'ar' ? 'جار تحميل الإعلان...' : 'Loading ad...';
-
-  // نصوص رسالة التحذير
-  const warnTextEl = document.getElementById('vast-warn-text');
-  const warnResumeBtn = document.getElementById('vast-warn-resume');
-  const warnExitBtn = document.getElementById('vast-warn-exit');
-  if (warnTextEl) warnTextEl.textContent = currentLang === 'ar'
-    ? 'لو خرجت من الإعلان مش هتقدر تكمل اللعبة!\nاستأنف الإعلان أو اخرج براحتك.'
-    : 'If you leave the ad you won\'t be able to continue the game!\nResume the ad or exit freely.';
-  if (warnResumeBtn) warnResumeBtn.textContent = currentLang === 'ar' ? '▶ استأنف الإعلان' : '▶ Resume Ad';
-  if (warnExitBtn) {
-    warnExitBtn.textContent = currentLang === 'ar' ? 'اخرج براحتي' : 'Exit freely';
-    warnExitBtn.onclick = () => finish();
-  }
-
-  let done = false;
-
-  function onVisibilityChange() {
-    if (done) return;
-    if (document.hidden) {
-      videoEl.pause();
-      const warnEl = document.getElementById('vast-warn-msg');
-      if (warnEl) warnEl.style.display = 'flex';
-    } else {
-      const warnEl = document.getElementById('vast-warn-msg');
-      if (warnEl) warnEl.style.display = 'none';
-      if (!done) videoEl.play().catch(()=>{});
-    }
-  }
-  document.addEventListener('visibilitychange', onVisibilityChange);
-
-  function onBeforeUnload(e) {
-    if (done) return;
-    e.preventDefault();
-    e.returnValue = '';
-  }
-  window.addEventListener('beforeunload', onBeforeUnload);
-
-  function finish() {
-    if (done) return;
-    done = true;
-    document.removeEventListener('visibilitychange', onVisibilityChange);
-    window.removeEventListener('beforeunload', onBeforeUnload);
-    const warnEl = document.getElementById('vast-warn-msg');
-    if (warnEl) warnEl.style.display = 'none';
-    const sp = document.getElementById('vast-spinner');
-    if (sp) sp.style.display = 'none';
-    overlay.style.display = 'none';
-    videoEl.pause();
-    videoEl.src = '';
-    // أعد preload للمرة الجاية
-    _vastPreload = { videoSrc: null, clickUrl: null, ready: false, loading: false };
-    setTimeout(preloadVast, 1000);
-    if (callback) callback();
-  }
-
-  function playVideo(videoSrc, clickUrl) {
-    adLabel.textContent = currentLang === 'ar' ? '📢 إعلان' : '📢 Ad';
-
-    // لو الفيديو محمّل مسبقاً — شغّله فوراً
-    const isPreloaded = videoEl.src && videoEl.src.includes(videoSrc.split('/').pop().split('?')[0]);
-    if (!isPreloaded) {
-      videoEl.src = videoSrc;
-      videoEl.preload = 'auto';
-    }
-
-    const showVideoAndPlay = () => {
-      const sp = document.getElementById('vast-spinner');
-      if (sp) sp.style.display = 'none';
-      videoEl.style.display = 'block';
-      videoEl.muted = false;
-      videoEl.volume = 0.5;
-      videoEl.play().catch(() => {
-        videoEl.muted = true;
-        videoEl.play().catch(() => finish());
-      });
-
-      let countdown = 15;
-      skipBtn.style.display = 'none';
-      const countdownDiv = document.getElementById('vast-skip-countdown');
-      const skipLblEl = document.getElementById('vast-skip-label-text');
-      if (skipLblEl) skipLblEl.textContent = currentLang === 'ar' ? 'تخطي بعد' : 'Skip in';
-      skipTimer.textContent = countdown;
-      countdownDiv.style.display = 'flex';
-
-      const timerInterval = setInterval(() => {
-        countdown--;
-        skipTimer.textContent = countdown;
-        if (countdown <= 0) {
-          clearInterval(timerInterval);
-          countdownDiv.style.display = 'none';
-          skipBtn.textContent = currentLang === 'ar' ? '⏩ تخطي' : '⏩ Skip Ad';
-          skipBtn.style.display = 'block';
-        }
-      }, 1000);
-
-      videoEl.onended = () => { clearInterval(timerInterval); finish(); };
-      videoEl.onclick = () => { if (clickUrl) try { window.open(clickUrl, '_blank'); } catch(e) {} };
-      skipBtn.onclick = () => { clearInterval(timerInterval); finish(); };
-    };
-
-    // لو جاهز — شغّل فوراً، وإلا استنى canplay
-    if (videoEl.readyState >= 3) {
-      showVideoAndPlay();
-    } else {
-      videoEl.oncanplay = () => { videoEl.oncanplay = null; showVideoAndPlay(); };
-      videoEl.load();
-    }
-  }
-
-  // لو preload جاهز — شغّل فوراً بدون fetch
-  if (_vastPreload.ready && _vastPreload.videoSrc) {
-    playVideo(_vastPreload.videoSrc, _vastPreload.clickUrl);
-    return;
-  }
-
-  // لو لا — fetch الـ VAST
-  fetch('/vast')
-    .then(r => r.text())
-    .then(xml => {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(xml, 'text/xml');
-      const mediaFiles = [...doc.querySelectorAll('MediaFile')];
-      const mp4 = mediaFiles.find(m => (m.getAttribute('type')||'').includes('mp4') || (m.getAttribute('codec')||'').includes('h264'));
-      const webm = mediaFiles.find(m => (m.getAttribute('type')||'').includes('webm'));
-      const chosen = mp4 || webm || mediaFiles[0];
-      let videoSrc = null;
-      if (chosen) {
-        videoSrc = chosen.textContent.trim().replace(/\s/g,'').replace(/^<!\[CDATA\[/,'').replace(/\]\]>$/,'').trim();
-      }
-      const clickThrough = doc.querySelector('ClickThrough');
-      const clickUrl = clickThrough ? clickThrough.textContent.trim().replace(/^<!\[CDATA\[/,'').replace(/\]\]>$/,'').trim() : null;
-
-      if (!videoSrc) {
-        if (clickUrl) try { window.open(clickUrl, '_blank'); } catch(e) {}
-        finish();
-        return;
-      }
-      playVideo(videoSrc, clickUrl);
-    })
-    .catch(() => finish());
-}
-
 function playAgainWithAd() {
-  showVastAd(() => {
-    document.getElementById('win-screen').classList.remove('show');
-  });
+  document.getElementById('win-screen').classList.remove('show');
 }
 
 function createRoomWithAd() {
-  showVastAd(() => createRoom());
+  createRoom();
 }
 
 function joinRoomWithAd() {
-  showVastAd(() => joinRoom());
+  joinRoom();
 }
 
 function selectLanguage(lang) {
   currentLang = lang;
   document.getElementById('lang-screen').classList.add('hidden');
   document.getElementById('lobby').classList.add('active');
-  // تحديث نصوص الإعلان
-  const skipBtn = document.getElementById('vast-skip');
-  const skipLbl = document.getElementById('vast-skip-label-text');
-  if (skipBtn) skipBtn.textContent = lang === 'ar' ? '⏩ تخطي' : '⏩ Skip Ad';
-  if (skipLbl) skipLbl.textContent = lang === 'ar' ? 'تخطي بعد' : 'Skip in';
   updateUILanguage();
   preloadAllImages();
 }
 
 function updateUILanguage() {
   // Lobby
-  document.getElementById('logoSub').textContent = t('logoSub');
-  document.getElementById('playerName').placeholder = t('playerNamePlaceholder');
-  document.getElementById('createRoomBtn').innerHTML = t('createRoomBtn');
-  document.getElementById('orDivider').textContent = t('orDivider');
-  document.getElementById('joinCode').placeholder = t('joinCodePlaceholder');
-  document.getElementById('joinRoomBtn').innerHTML = t('joinRoomBtn');
+  const logoSubEl = document.getElementById('logoSub');
+  if(logoSubEl) logoSubEl.textContent = t('logoSub');
+  const playerNameEl = document.getElementById('playerName');
+  if(playerNameEl) playerNameEl.placeholder = t('playerNamePlaceholder');
+  const createRoomBtnEl = document.getElementById('createRoomBtn');
+  if(createRoomBtnEl) createRoomBtnEl.innerHTML = t('createRoomBtn');
+  const orDividerEl = document.getElementById('orDivider');
+  if(orDividerEl) orDividerEl.textContent = t('orDivider');
+  const joinCodeEl = document.getElementById('joinCode');
+  if(joinCodeEl) joinCodeEl.placeholder = t('joinCodePlaceholder');
+  const joinRoomBtnEl = document.getElementById('joinRoomBtn');
+  if(joinRoomBtnEl) joinRoomBtnEl.innerHTML = t('joinRoomBtn');
   
   // Waiting
-  document.getElementById('roomCodeLabel').textContent = t('roomCodeLabel');
-  document.getElementById('startGameBtn').textContent = t('startGameBtn');
-  document.getElementById('copyCodeBtn').textContent = t('copyCodeBtn');
+  const roomCodeLabelEl = document.getElementById('roomCodeLabel');
+  if(roomCodeLabelEl) roomCodeLabelEl.textContent = t('roomCodeLabel');
+  const startGameBtnEl = document.getElementById('startGameBtn');
+  if(startGameBtnEl) startGameBtnEl.textContent = t('startGameBtn');
+  const copyCodeBtnEl = document.getElementById('copyCodeBtn');
+  if(copyCodeBtnEl) copyCodeBtnEl.textContent = t('copyCodeBtn');
   
   // Game — 2-player action bar
-  document.getElementById('endTurnBtn').textContent = t('endTurnBtn');
+  const endTurnBtnEl = document.getElementById('endTurnBtn');
+  if(endTurnBtnEl) endTurnBtnEl.textContent = t('endTurnBtn');
   const deckHintEl = document.getElementById('deckHint');
   if(deckHintEl) deckHintEl.textContent = '🃏 '+t('deckHint');
   
@@ -1231,26 +990,38 @@ function updateUILanguage() {
   if(endTurnBtn2El) endTurnBtn2El.textContent = t('endTurnBtn');
   
   // Zone labels (3-4p)
-  document.getElementById('myGkLabel').textContent = t('GK');
-  document.getElementById('myDefLabel').textContent = t('DEF');
-  document.getElementById('myMidLabel').textContent = t('MID');
-  document.getElementById('myAtkLabel').textContent = t('ATK');
+  const myGkLabel = document.getElementById('myGkLabel');
+  if(myGkLabel) myGkLabel.textContent = t('GK');
+  const myDefLabel = document.getElementById('myDefLabel');
+  if(myDefLabel) myDefLabel.textContent = t('DEF');
+  const myMidLabel = document.getElementById('myMidLabel');
+  if(myMidLabel) myMidLabel.textContent = t('MID');
+  const myAtkLabel = document.getElementById('myAtkLabel');
+  if(myAtkLabel) myAtkLabel.textContent = t('ATK');
   
   // Zone popup
-  document.getElementById('zonePopupTitle').textContent = t('zonePopupTitle');
-  document.getElementById('zoneCancelBtn').textContent = t('zoneCancelBtn');
+  const zonePopupTitleEl = document.getElementById('zonePopupTitle');
+  if(zonePopupTitleEl) zonePopupTitleEl.textContent = t('zonePopupTitle');
+  const zoneCancelBtnEl = document.getElementById('zoneCancelBtn');
+  if(zoneCancelBtnEl) zoneCancelBtnEl.textContent = t('zoneCancelBtn');
   
   // Win screen
-  document.getElementById('newGameBtn').textContent = t('playAgainBtn');
+  const newGameBtnEl = document.getElementById('newGameBtn');
+  if(newGameBtnEl) newGameBtnEl.textContent = t('playAgainBtn');
   
   // Cancel popup
-  document.getElementById('cancelTitle').textContent = t('cancelTitle');
-  document.getElementById('cancelQuestion').textContent = t('cancelQuestion');
-  document.getElementById('cancelYesBtn').textContent = t('cancelYesBtn');
-  document.getElementById('cancelNoBtn').textContent = t('cancelNoBtn');
+  const cancelTitleEl = document.getElementById('cancelTitle');
+  if(cancelTitleEl) cancelTitleEl.textContent = t('cancelTitle');
+  const cancelQuestionEl = document.getElementById('cancelQuestion');
+  if(cancelQuestionEl) cancelQuestionEl.textContent = t('cancelQuestion');
+  const cancelYesBtnEl = document.getElementById('cancelYesBtn');
+  if(cancelYesBtnEl) cancelYesBtnEl.textContent = t('cancelYesBtn');
+  const cancelNoBtnEl = document.getElementById('cancelNoBtn');
+  if(cancelNoBtnEl) cancelNoBtnEl.textContent = t('cancelNoBtn');
   
   // Error
-  document.getElementById('errorOkBtn').textContent = t('errorOk');
+  const errorOkBtnEl = document.getElementById('errorOkBtn');
+  if(errorOkBtnEl) errorOkBtnEl.textContent = t('errorOk');
   
   // RTL/LTR direction
   document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
@@ -1287,8 +1058,6 @@ function copyCode(){
 }
 
 function startGame(){
-  const sliderAd = document.getElementById('slider-ad-wrap');
-  if (sliderAd) sliderAd.style.display = 'none';
 }
 
 }
@@ -1957,21 +1726,7 @@ renderOppFormation=function(){
   </div>
 </div>
 
-<!-- SLIDER VIDEO AD -->
-<div id="slider-ad-wrap" style="position:fixed;bottom:0;left:0;right:0;z-index:8000;display:block;">
-<script>
-(function(tous){
-var d = document,
-    s = d.createElement('script'),
-    l = d.scripts[d.scripts.length - 1];
-s.settings = tous || {};
-s.src = "\/\/stupid-police.com\/bWX\/VnsPd.Gpl\/0RYbWRci\/me_mr9\/uQZmUdlXk\/PuTDYZ5NOXDbcKzzMPzJcOtaNujykG4uN\/zJMQ0uM\/Qi";
-s.async = true;
-s.referrerPolicy = 'no-referrer-when-downgrade';
-l.parentNode.insertBefore(s, l);
-})({})
-</script>
-</div>
+
 
 
 <script src="/game.js"></script>
