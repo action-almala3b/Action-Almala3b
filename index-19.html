@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="referrer" content="no-referrer-when-downgrade" />
+<title>Action Almala3b - أكشن الملاعب</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@700;800&family=Rajdhani:wght@700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { width:100%; height:100%; overflow:hidden; background:#000000; font-family:'Orbitron','Tajawal',sans-serif; color:#fff; }
+
+/* ===== LANGUAGE SELECTION SCREEN ===== */
+#lang-screen {
+  width: 100%;
+  height: 100%;
+  background: #000000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  padding: 40px 30px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+}
+
+#lang-screen.hidden {
+  display: none;
+}
+
+.lang-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(13px, 3vw, 18px);
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 3px;
+  text-align: center;
+}
+
+.lang-choose-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.lang-choose-en {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(18px, 4vw, 26px);
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 4px;
+  text-shadow: 0 0 15px rgba(255,255,255,0.4);
+}
+
+.lang-choose-ar {
+  font-family: 'Tajawal', sans-serif;
+  font-size: clamp(20px, 4.5vw, 28px);
+  font-weight: 800;
+  color: #00e5ff;
+  letter-spacing: 2px;
+  text-shadow: 0 0 15px rgba(0,229,255,0.5);
+}
+
+.lang-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+  max-width: 320px;
+}
+
+.lang-btn {
+  width: 100%;
+  padding: 18px 20px;
+  border: none;
+  background: #ffffff;
+  color: #0d1117;
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(16px, 3vw, 20px);
+  font-weight: 900;
+  letter-spacing: 2px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 20px rgba(255,255,255,0.25);
+}
+
+.lang-btn:hover, .lang-btn:active {
+  transform: scale(1.05);
+  box-shadow: 0 0 35px rgba(255,255,255,0.5);
+}
+
+.lang-btn.ar-btn {
+  background: transparent;
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(255,255,255,0.1);
+}
+
+.lang-btn.ar-btn:hover, .lang-btn.ar-btn:active {
+  background: rgba(255,255,255,0.1);
+  box-shadow: 0 0 30px rgba(255,255,255,0.3);
+}
+
+/* ===== GAME SCREENS ===== */
+.screen { display:none; width:100%; height:100%; position:absolute; top:0; left:0; }
+.screen.active { display:flex; flex-direction:column; align-items:center; justify-content:center; }
+#game.active { align-items:stretch; justify-content:flex-start; }
+
+/* LOBBY */
+#lobby { background:#000000; padding:30px 24px; gap:20px; }
+.logo-title { font-family:'Orbitron',sans-serif; font-size:clamp(22px,6vw,32px); color:#fff; text-shadow:0 0 20px rgba(255,255,255,0.4); text-align:center; }
+.logo-title span { color:#00e5ff; }
+.logo-sub { color:rgba(255,255,255,0.35); font-size:12px; letter-spacing:3px; text-align:center; margin-top:4px; }
+.input-group { width:100%; max-width:320px; display:flex; flex-direction:column; gap:12px; }
+.inp { width:100%; padding:14px 18px; background:rgba(255,255,255,0.06); border:1.5px solid rgba(255,255,255,0.18); border-radius:50px; color:#fff; font-family:'Tajawal',sans-serif; font-size:16px; outline:none; text-align:center; }
+.inp::placeholder { color:rgba(255,255,255,0.25); }
+.inp:focus { border-color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.1); }
+.btn { width:100%; padding:16px; border:none; border-radius:50px; font-family:'Orbitron',sans-serif; font-size:15px; font-weight:900; cursor:pointer; transition:all 0.25s; letter-spacing:1px; }
+.btn-primary { background:#ffffff; color:#0d1117; box-shadow:0 0 20px rgba(255,255,255,0.25); }
+.btn-primary:active, .btn-primary:hover { transform:scale(1.04); box-shadow:0 0 35px rgba(255,255,255,0.5); }
+.btn-outline { background:transparent; border:2px solid #ffffff; color:#ffffff; box-shadow:0 0 12px rgba(255,255,255,0.08); }
+.btn-outline:active, .btn-outline:hover { background:rgba(255,255,255,0.1); box-shadow:0 0 25px rgba(255,255,255,0.2); }
+.or-divider { color:rgba(255,255,255,0.25); font-size:13px; }
+
+/* WAITING */
+#waiting { background:#000000; gap:20px; padding:30px; text-align:center; }
+.room-code-box { background:rgba(255,255,255,0.05); border:2px solid rgba(255,255,255,0.3); border-radius:50px; padding:20px 40px; box-shadow:0 0 20px rgba(255,255,255,0.08); }
+.room-code-label { font-size:12px; color:rgba(255,255,255,0.4); margin-bottom:6px; letter-spacing:2px; }
+.room-code { font-family:'Orbitron',sans-serif; font-size:40px; color:#ffffff; letter-spacing:10px; text-shadow:0 0 20px rgba(255,255,255,0.5); }
+.players-list { width:100%; max-width:320px; }
+.player-chip { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:50px; padding:10px 20px; margin-bottom:8px; text-align:center; font-size:15px; }
+.waiting-msg { color:rgba(255,255,255,0.35); font-size:14px; letter-spacing:1px; }
+
+/* GAME */
+#game { display:none; flex-direction:column; width:100vw; height:100%; overflow:hidden; background:#000; }
+#game.active { display:flex; }
+
+/* الخلفية داخل field-area فقط — ما تطلعش على كروت اليد */
+#pitch-bg {
+  position:absolute;
+  top:0; left:0; right:0; bottom:0;
+  width:100%; height:100%;
+  background-image: url('images/pitch.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center center;
+  z-index:0; pointer-events:none;
+  margin:0; padding:0;
+}
+.top-bar { display:flex; justify-content:space-between; align-items:center; padding:4px 10px; background:rgba(0,0,0,0.55); border-bottom:1px solid rgba(255,255,255,0.1); flex-shrink:0; z-index:10; position:relative; }
+.turn-badge { background:rgba(0,229,255,0.2); border:1px solid #00e5ff; border-radius:20px; padding:3px 12px; font-size:11px; color:#00e5ff; }
+.top-name { font-size:11px; color:rgba(255,255,255,0.5); }
+.main-layout { flex:1; position:relative; overflow:hidden; display:flex; flex-direction:column; z-index:1; min-height:0; width:100%; }
+
+/* خصم فوق */
+.opp-top { flex-shrink:0; background:transparent; border-bottom:none; padding:5px 50px; }
+
+/* خصم يمين — بدون خلفية أو بوردر، overflow:visible عشان الكروت ما تتحجبش */
+.opp-right { position:absolute; right:0; top:0; bottom:0; width:54px; background:transparent; border-left:none; display:flex; align-items:center; justify-content:center; z-index:5; overflow:visible; }
+.opp-right-inner { transform:rotate(90deg); display:flex; flex-direction:column; align-items:center; gap:3px; overflow:visible; }
+.opp-left { position:absolute; left:0; top:0; bottom:0; width:54px; background:transparent; border-right:none; display:flex; align-items:center; justify-content:center; z-index:5; overflow:visible; }
+.opp-left-inner { transform:rotate(-90deg); display:flex; flex-direction:column; align-items:center; gap:3px; overflow:visible; }
+.opp-name { font-size:9px; color:rgba(255,255,255,0.4); text-align:center; margin-bottom:2px; }
+
+/* وسط */
+.middle-zone { flex:1; margin:0 54px; display:flex; flex-direction:column; position:relative; overflow:hidden; }
+.center-area { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); display:flex; align-items:center; justify-content:center; gap:16px; z-index:2; }
+.deck-pile { width:64px; height:88px; background:linear-gradient(135deg,#1a2a4a,#0d1f35); border:2px solid rgba(0,229,255,0.4); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:0 0 20px rgba(0,229,255,0.35); flex-shrink:0; cursor:pointer; transition:transform 0.15s; user-select:none; }
+.deck-pile:active { transform:scale(0.95); }
+.deck-pile.drawn2 { border-color:rgba(255,255,255,0.15); box-shadow:none; opacity:0.6; }
+.deck-num { font-family:'Orbitron',sans-serif; font-size:22px; color:#00e5ff; line-height:1; }
+.deck-lbl { font-size:7px; color:rgba(255,255,255,0.3); margin-top:2px; }
+.deck-hint { font-size:7px; color:rgba(0,229,255,0.5); margin-top:2px; }
+.discard-slot { width:64px; height:88px; border:2px dashed rgba(255,255,255,0.15); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4px; flex-shrink:0; background:rgba(255,255,255,0.02); overflow:hidden; gap:3px; }
+.discard-card { width:46px; height:60px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:8px; text-align:center; padding:3px; line-height:1.3; border:1px solid rgba(255,255,255,0.15); }
+.discard-label { font-size:7px; color:rgba(255,255,255,0.2); }
+
+/* MY SECTION */
+.my-section { flex-shrink:0; display:flex; flex-direction:column; background:transparent; border-top:none; margin:0 54px; }
+.my-field-row { display:flex; gap:0; padding:5px 4px 3px; }
+.my-zone-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:1px; min-width:0; padding:0 3px; }
+.my-zone-lbl { font-size:8px; color:rgba(255,255,255,0.25); text-align:center; margin-bottom:2px; }
+.my-zone-cards-h { display:flex; gap:3px; justify-content:center; flex-wrap:nowrap; overflow:hidden; }
+.zone-divider { width:1px; background:rgba(255,255,255,0.07); flex-shrink:0; }
+
+.action-bar { display:flex; gap:8px; padding:5px 8px; background:rgba(0,0,0,0.3); justify-content:center; align-items:center; flex-shrink:0; }
+.abtn { padding:7px 16px; border-radius:8px; border:none; font-family:'Tajawal',sans-serif; font-size:12px; font-weight:700; cursor:pointer; }
+.abtn-end { background:#00e5ff; color:#071020; }
+.abtn-end:disabled { background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.3); cursor:not-allowed; }
+.draw-remain { font-size:10px; color:rgba(0,229,255,0.7); background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.2); border-radius:12px; padding:3px 10px; }
+
+.hand-area { display:flex; gap:4px; padding:5px 6px; overflow-x:auto; align-items:flex-end; min-height:74px; scrollbar-width:none; flex-shrink:0; background:rgba(0,0,0,0.6); }
+.hand-area::-webkit-scrollbar { display:none; }
+.hand-card { width:40px; height:56px; flex-shrink:0; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:9px; font-weight:700; position:relative; border:1.5px solid transparent; cursor:pointer; transition:transform 0.15s; overflow:hidden; }
+.hand-card:active { transform:scale(0.93); }
+.hand-card.selected { border-color:#00e5ff !important; transform:translateY(-7px); box-shadow:0 4px 14px rgba(0,229,255,0.5); }
+.name-bar { text-align:center; font-size:10px; color:rgba(255,255,255,0.4); padding:3px; background:rgba(0,0,0,0.7); flex-shrink:0; }
+
+/* ألوان كروت */
+.card-GK    { background:linear-gradient(135deg,#f5a623,#e08800); border-color:rgba(245,166,35,0.4); }
+.card-DEF   { background:linear-gradient(135deg,#4a90d9,#2874b5); border-color:rgba(74,144,217,0.4); }
+.card-MID   { background:linear-gradient(135deg,#27ae60,#1e8449); border-color:rgba(39,174,96,0.4); }
+.card-ATK   { background:linear-gradient(135deg,#e74c3c,#c0392b); border-color:rgba(231,76,60,0.4); }
+.card-JOKER { background:linear-gradient(135deg,#8e44ad,#6c3483); border-color:rgba(142,68,173,0.5); }
+.card-special { background:linear-gradient(135deg,#2c3e50,#1a252f); border-color:rgba(255,255,255,0.2); }
+.card-num { font-family:'Orbitron',sans-serif; font-size:14px; color:#fff; }
+.card-zone-txt { font-size:7px; color:rgba(255,255,255,0.7); }
+.star-icon { position:absolute; top:2px; right:2px; font-size:8px; }
+.cap-icon  { position:absolute; top:2px; left:2px; font-size:8px; }
+.yellow-mark { position:absolute; bottom:2px; right:2px; background:#f1c40f; border-radius:50%; width:8px; height:8px; }
+
+/* mini cards — نفس حجم hand-card */
+.mini-card { width:40px; height:56px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700; color:#fff; flex-shrink:0; position:relative; border:1.5px solid rgba(255,255,255,0.15); cursor:pointer; overflow:hidden; }
+.mini-card .s { position:absolute; top:18px; left:3px; font-size:7px; color:#ffd700; text-shadow:0 0 4px #000,1px 1px 0 #000; z-index:5; line-height:1; background:rgba(0,0,0,0.4); border-radius:3px; padding:1px 2px; }
+.mini-card .c { position:absolute; top:1px; left:1px; font-size:6px; }
+.drop-hint-h { width:40px; height:56px; border:1.5px dashed rgba(255,255,255,0.1); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:18px; color:rgba(255,255,255,0.1); flex-shrink:0; cursor:pointer; }
+.field-row { display:flex; gap:0; }
+.zone-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:1px; min-width:0; padding:0 2px; }
+.zone-lbl { font-size:7px; color:rgba(255,255,255,0.2); text-align:center; margin-bottom:1px; }
+.zone-cards-h { display:flex; gap:2px; justify-content:center; flex-wrap:nowrap; overflow:hidden; }
+.side-field { display:flex; gap:4px; align-items:center; justify-content:center; }
+.side-zone { display:flex; flex-direction:column; align-items:center; gap:1px; }
+.side-lbl { font-size:6px; color:rgba(255,255,255,0.2); }
+.side-cards { display:flex; gap:1px; }
+.mini-card-xs { width:24px; height:18px; border-radius:3px; display:flex; align-items:center; justify-content:center; font-family:'Orbitron',sans-serif; font-size:9px; font-weight:700; color:#fff; flex-shrink:0; border:1px solid rgba(255,255,255,0.1); cursor:pointer; }
+
+/* POPUPS */
+.popup-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:100; align-items:center; justify-content:center; }
+.popup-overlay.show { display:flex; }
+.popup-box { background:#0d1f35; border:2px solid rgba(0,229,255,0.4); border-radius:16px; padding:24px; max-width:300px; width:90%; text-align:center; }
+.popup-title { font-family:'Orbitron',sans-serif; font-size:20px; color:#00e5ff; margin-bottom:12px; }
+.popup-msg { color:rgba(255,255,255,0.7); font-size:14px; margin-bottom:20px; line-height:1.6; }
+#zone-popup { z-index:200; }
+.zone-btns { display:flex; flex-direction:column; gap:10px; }
+.zone-btn { padding:12px; border-radius:10px; border:none; font-family:'Tajawal',sans-serif; font-size:16px; font-weight:700; cursor:pointer; }
+.zone-btn-GK  { background:#f5a623; color:#000; }
+.zone-btn-DEF { background:#4a90d9; color:#fff; }
+.zone-btn-MID { background:#27ae60; color:#fff; }
+.zone-btn-ATK { background:#e74c3c; color:#fff; }
+.toast { position:fixed; top:42%; left:50%; transform:translateX(-50%); background:rgba(0,229,255,0.15); border:1px solid #00e5ff; border-radius:20px; padding:8px 20px; font-size:13px; color:#00e5ff; z-index:300; animation:fadeToast 3s forwards; white-space:nowrap; }
+.toast.error { background:rgba(255,59,59,0.2); border-color:#ff3b3b; color:#ff3b3b; }
+@keyframes fadeToast { 0%{opacity:0;transform:translateX(-50%) translateY(10px)} 15%{opacity:1;transform:translateX(-50%) translateY(0)} 70%{opacity:1} 100%{opacity:0} }
+#win-screen { background:rgba(0,0,0,0.82); backdrop-filter:blur(6px); z-index:500; flex-direction:column; gap:14px; text-align:center; padding:20px 16px; overflow-y:auto; }
+.win-trophy { font-size:64px; }
+.win-title { font-family:'Orbitron',sans-serif; font-size:24px; color:#ffd700; text-shadow:0 0 30px rgba(255,215,0,0.8); }
+.win-sub { color:rgba(255,255,255,0.6); font-size:14px; }
+/* تشكيلة الفايز */
+.win-formation { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:14px; padding:12px 14px; max-width:340px; width:100%; margin:0 auto; }
+.win-formation-title { font-size:11px; color:rgba(255,255,255,0.35); letter-spacing:2px; margin-bottom:8px; }
+.win-zones { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+.win-zone { display:flex; flex-direction:column; align-items:center; gap:3px; }
+.win-zone-lbl { font-size:8px; color:rgba(255,255,255,0.25); }
+.win-zone-cards { display:flex; gap:2px; flex-wrap:wrap; justify-content:center; }
+.win-mini-card { width:34px; height:24px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; color:#fff; border:1px solid rgba(255,255,255,0.12); position:relative; }
+.win-mini-card .ws { position:absolute; top:1px; right:1px; font-size:5px; }
+.win-mini-card .wc { position:absolute; top:1px; left:1px; font-size:5px; }
+/* كروت محروقة */
+.burned-section { background:rgba(255,59,59,0.07); border:1px solid rgba(255,59,59,0.2); border-radius:14px; padding:10px 14px; max-width:340px; width:100%; margin:0 auto; }
+.burned-title { font-size:11px; color:rgba(255,100,100,0.6); letter-spacing:2px; margin-bottom:6px; }
+.burned-cards { display:flex; gap:3px; flex-wrap:wrap; justify-content:center; }
+.burned-mini { width:34px; height:24px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; color:#fff; border:1px solid rgba(255,59,59,0.25); opacity:0.7; }
+.pending-banner { position:fixed; top:10px; left:50%; transform:translateX(-50%); background:rgba(255,165,0,0.2); border:1px solid orange; border-radius:20px; padding:6px 16px; font-size:12px; color:orange; z-index:400; display:none; }
+.pending-banner.show { display:block; }
+
+
+
+/* ══ FLYING CARD ══ */
+.flying-card {
+  position:fixed; z-index:9990; pointer-events:none;
+  border-radius:6px; overflow:hidden;
+  border:1.5px solid rgba(255,255,255,0.3);
+  box-shadow:0 8px 30px rgba(0,0,0,0.9);
+  transition:none;
+}
+@keyframes flyToField {
+  0%   { transform:scale(1) rotate(0deg);    opacity:1; }
+  50%  { transform:scale(0.85) rotate(-8deg); opacity:1; }
+  85%  { transform:scale(1.15) rotate(2deg);  opacity:1; }
+  100% { transform:scale(1) rotate(0deg);    opacity:0; }
+}
+/* impact shake on target */
+@keyframes impactShake {
+  0%,100% { transform:scale(1); }
+  25%  { transform:scale(1.12) rotate(-2deg); }
+  50%  { transform:scale(0.95) rotate(1deg); }
+  75%  { transform:scale(1.06) rotate(-1deg); }
+}
+.card-impact { animation:impactShake 0.3s ease-out both; }
+
+/* ══ BURNED ZONE EXPANDED ══ */
+#burned-zone {
+  flex-shrink:0; order:-1;
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:flex-end; padding:4px 4px 4px 6px;
+  border-right:1px solid rgba(255,80,80,0.25);
+  min-width:52px; max-width:52px;
+}
+#burned-stack { position:relative; width:38px; height:54px; cursor:pointer; }
+#burned-stack:hover .burned-tooltip { display:flex; }
+.burned-tooltip {
+  display:none; position:fixed; bottom:90px; left:6px; z-index:9995;
+  flex-direction:column; gap:4px;
+  background:rgba(5,10,18,0.97); border:1px solid rgba(255,80,80,0.3);
+  border-radius:10px; padding:8px; max-height:60vh; overflow-y:auto;
+  box-shadow:0 8px 30px rgba(0,0,0,0.9); min-width:200px; max-width:260px;
+}
+.burned-tooltip-title {
+  font-size:9px; color:rgba(255,100,100,0.8); letter-spacing:2px;
+  font-family:'Orbitron',sans-serif; margin-bottom:4px; text-align:center;
+}
+.bt-row {
+  display:flex; align-items:center; gap:8px;
+  padding:5px 6px; border-radius:6px;
+  background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
+}
+.bt-card { width:30px; height:42px; border-radius:5px; position:relative; flex-shrink:0; overflow:hidden; border:1px solid rgba(255,255,255,0.15); }
+.bt-info { flex:1; min-width:0; }
+.bt-name { font-size:11px; color:#fff; font-weight:700; font-family:'Tajawal',sans-serif; }
+.bt-from { font-size:9px; color:rgba(255,255,255,0.4); margin-top:2px; }
+.bt-why  { font-size:10px; margin-top:2px; }
+
+/* ══ CHAT ══ */
+#chat-toggle {
+  position:fixed; bottom:90px; right:10px; z-index:500;
+  width:40px; height:40px; border-radius:50%;
+  background:rgba(0,229,255,0.15); border:1.5px solid rgba(0,229,255,0.4);
+  display:none; align-items:center; justify-content:center;
+  font-size:18px; cursor:pointer; transition:all 0.2s;
+  box-shadow:0 0 12px rgba(0,229,255,0.2);
+}
+#chat-toggle:hover { background:rgba(0,229,255,0.25); }
+#chat-toggle.has-unread::after {
+  content:''; position:absolute; top:2px; right:2px;
+  width:10px; height:10px; border-radius:50%;
+  background:#ff2d55; border:2px solid #000;
+  animation:dotBlink 1s infinite;
+}
+@keyframes dotBlink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+#chat-box {
+  position:fixed; bottom:85px; right:10px; z-index:600;
+  width:240px; background:rgba(5,10,18,0.97);
+  border:1px solid rgba(0,229,255,0.2); border-radius:12px;
+  display:none; flex-direction:column;
+  box-shadow:0 8px 30px rgba(0,0,0,0.8);
+  overflow:hidden;
+}
+#chat-box.open { display:flex; }
+.chat-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 12px; border-bottom:1px solid rgba(255,255,255,0.06);
+  font-family:'Orbitron',sans-serif; font-size:10px; color:rgba(0,229,255,0.8);
+  letter-spacing:2px;
+}
+.chat-close { background:none; border:none; color:rgba(255,255,255,0.4); font-size:18px; cursor:pointer; line-height:1; }
+.chat-close:hover { color:#fff; }
+#chat-messages {
+  flex:1; overflow-y:auto; padding:8px; display:flex;
+  flex-direction:column; gap:6px; max-height:180px;
+  scrollbar-width:none;
+}
+#chat-messages::-webkit-scrollbar { display:none; }
+.chat-msg {
+  font-size:12px; line-height:1.5; padding:6px 9px;
+  border-radius:8px; max-width:90%; word-break:break-word;
+  font-family:'Tajawal',sans-serif;
+}
+.chat-msg.mine {
+  background:rgba(0,229,255,0.12); border:1px solid rgba(0,229,255,0.2);
+  color:#e8eef8; align-self:flex-end; border-radius:8px 2px 8px 8px;
+}
+.chat-msg.theirs {
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);
+  color:#e8eef8; align-self:flex-start; border-radius:2px 8px 8px 8px;
+}
+.chat-msg.system {
+  background:transparent; color:rgba(255,215,0,0.6);
+  font-size:10px; text-align:center; align-self:center; border:none; padding:2px 0;
+}
+.chat-msg .msg-sender { font-size:9px; color:rgba(255,255,255,0.4); margin-bottom:2px; }
+.chat-input-row {
+  display:flex; gap:0; border-top:1px solid rgba(255,255,255,0.06);
+}
+#chat-input {
+  flex:1; background:rgba(255,255,255,0.04); border:none; outline:none;
+  color:#fff; font-family:'Tajawal',sans-serif; font-size:13px;
+  padding:9px 10px;
+}
+#chat-input::placeholder { color:rgba(255,255,255,0.25); }
+#chat-send {
+  background:rgba(0,229,255,0.15); border:none; border-left:1px solid rgba(0,229,255,0.2);
+  color:#00e5ff; font-size:16px; padding:0 12px; cursor:pointer; transition:background 0.15s;
+}
+#chat-send:hover { background:rgba(0,229,255,0.25); }
+
+/* quick emoji reactions */
+.chat-reactions {
+  display:flex; gap:4px; padding:5px 8px;
+  border-top:1px solid rgba(255,255,255,0.04); flex-wrap:wrap;
+}
+.react-btn {
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);
+  border-radius:20px; padding:3px 8px; font-size:12px; cursor:pointer;
+  transition:background 0.15s; color:#fff;
+}
+.react-btn:hover { background:rgba(255,255,255,0.12); }
+</style>
+</head>
+<body>
+
+<!-- BANNER AD - shown outside game -->
+
+
+<!-- LANGUAGE SELECTION SCREEN -->
+<div id="lang-screen">
+  <div class="lang-choose-text">
+    <div class="lang-choose-en">CHOOSE LANGUAGE</div>
+    <div class="lang-choose-ar">اختر اللغة</div>
+  </div>
+  <div class="lang-buttons">
+    <button class="lang-btn" onclick="selectLanguage('en');">English</button>
+    <button class="lang-btn ar-btn" onclick="selectLanguage('ar');">عربي</button>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div id="lobby" class="screen">
+  <div><div class="logo-title">Action <span>Almala3b</span></div><div class="logo-sub" id="logoSub">ONLINE CARD GAME</div></div>
+  <div class="input-group">
+    <input class="inp" id="playerName" placeholder="Your Name" maxlength="15">
+    <button class="btn btn-primary" onclick="createRoom()" id="createRoomBtn">🏟️ Create Room</button>
+    <div class="or-divider" id="orDivider">— or —</div>
+    <input class="inp" id="joinCode" placeholder="Room Code (6 digits)" maxlength="6" inputmode="numeric">
+    <button class="btn btn-outline" onclick="joinRoom()" id="joinRoomBtn">🔗 Join Room</button>
+  </div>
+</div>
+
+<!-- WAITING -->
+<div id="waiting" class="screen">
+  <div class="room-code-box">
+    <div class="room-code-label" id="roomCodeLabel">Room Code — Share with your friends</div>
+    <div class="room-code" id="displayCode">——</div>
+  </div>
+  <div class="players-list" id="playersList"></div>
+  <div class="waiting-msg" id="waitingMsg">Waiting for another player...</div>
+  <button class="btn btn-primary" id="startGameBtn" style="max-width:200px; display:none;" onclick="startGame()">🎮 Start Game</button>
+  <button class="btn btn-outline" style="max-width:200px" onclick="copyCode()" id="copyCodeBtn">📋 Copy Code</button>
+</div>
+
+<!-- GAME -->
+<div id="game" class="screen">
+  <!-- خلفية الملعب — داخل main-layout فقط، ما تغطيش كروت اليد -->
+  <div class="top-bar">
+    <div class="turn-badge" id="turnIndicator">Your Turn ⚡</div>
+    <div class="top-name" id="topName">👤 You</div>
+  </div>
+
+  <!-- منطقة الملعب — الخلفية هنا بس -->
+  <div class="main-layout" style="position:relative;">
+    <div id="pitch-bg"></div>
+
+    <!-- For 3-4 players: old layout areas -->
+    <div class="opp-top" id="opp-top-area" style="display:none;"></div>
+    <div class="opp-right" id="opp-right-area" style="display:none"><div class="opp-right-inner" id="opp-right-inner"></div></div>
+    <div class="opp-left" id="opp-left-area" style="display:none"><div class="opp-left-inner" id="opp-left-inner"></div></div>
+
+    <!-- 2-player split screen — fills the pitch image -->
+    <div id="two-player-layout" style="display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0;width:100%;">
+
+      <!-- نصف الشاشة العلوي — الخصم (GK أعلى، ATK قريب من المنتصف) -->
+      <div id="opp-formation-half" style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:2px 0 0;min-height:0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:0 8px 1px;flex-shrink:0;">
+          <div id="oppFormationName" style="font-size:10px;color:rgba(255,255,255,0.9);text-shadow:0 1px 4px rgba(0,0,0,0.9);font-family:Tajawal,sans-serif;font-weight:700;">👤 Opponent</div>
+          <div id="oppHandCount" style="font-size:9px;color:rgba(255,255,255,0.7);text-shadow:0 1px 3px #000;">🃏 0</div>
+        </div>
+        <!-- GK أعلى (بعيد عن الخط)، ATK أسفل (قريب من الخط) -->
+        <div class="form-row" id="opp-row-GK" style="flex:1;min-height:0;overflow:hidden;"></div>
+        <div class="form-row" id="opp-row-DEF" style="flex:1;min-height:0;overflow:hidden;"></div>
+        <div class="form-row" id="opp-row-MID" style="flex:1;min-height:0;overflow:hidden;"></div>
+        <!-- ATK الخصم قريب من خط المنتصف — الجزء الدائري العلوي -->
+        <div class="form-row" id="opp-row-ATK" style="flex:1;min-height:0;overflow:hidden;max-height:60px;"></div>
+      </div>
+
+      <!-- لا يوجد خط مضاف — الخلفية نفسها فيها الخط الأبيض -->
+
+      <!-- نصف الشاشة السفلي — أنا (ATK/MID/DEF فقط، الحارس تحت منفصل في منطقة الجزاء) -->
+      <div id="my-formation-half" style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 0 2px;min-height:0;">
+        <!-- ATK قريب من خط المنتصف (الجزء الدائري السفلي) -->
+        <div class="form-row" id="my-row-ATK" style="flex:1;min-height:0;overflow:hidden;max-height:60px;"></div>
+        <div class="form-row" id="my-row-MID" style="flex:1;min-height:0;overflow:hidden;"></div>
+        <div class="form-row" id="my-row-DEF" style="flex:1;min-height:0;overflow:hidden;"></div>
+      </div>
+
+      <!-- منطقة الحارس في منطقة الجزاء -->
+      <div id="my-gk-row" style="flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:2px 6px;min-height:60px;position:relative;z-index:2;">
+        <div id="my-row-GK" style="display:flex;gap:4px;align-items:center;justify-content:center;overflow:hidden;position:relative;z-index:2;"></div>
+      </div>
+    </div>
+
+    <!-- For 3-4 players: middle zone (old) -->
+    <div class="middle-zone" id="middle-zone-old" style="display:none;">
+      <div class="center-area">
+        <div class="deck-pile" id="deckPile2" onclick="drawCard()">
+          <div class="deck-num" style="font-size:22px;" id="deckCount2">?</div>
+          <div class="deck-lbl" id="deckLbl2">Cards</div>
+          <div class="deck-hint" id="deckHint2">Tap to draw</div>
+        </div>
+        <div class="discard-slot" id="discardSlot2">
+          <div class="discard-label" id="discardLabel2">Discard</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- my-section for 3-4 players -->
+    <div class="my-section" id="my-section-old" style="display:none;">
+      <div class="my-field-row" style="display:flex;gap:6px;justify-content:center;padding:4px 4px 2px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+          <div style="font-size:7px;color:rgba(255,255,255,0.25);margin-bottom:2px;" id="myMidLabel">MID</div>
+          <div class="my-zone-cards-h" id="field-MID"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+          <div style="font-size:7px;color:rgba(255,255,255,0.25);margin-bottom:2px;" id="myAtkLabel">ATK</div>
+          <div class="my-zone-cards-h" id="field-ATK"></div>
+        </div>
+      </div>
+      <div class="my-field-row" style="display:flex;gap:6px;justify-content:center;padding:2px 4px 3px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+          <div style="font-size:7px;color:rgba(255,255,255,0.25);margin-bottom:2px;" id="myGkLabel">GK</div>
+          <div class="my-zone-cards-h" id="field-GK"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+          <div style="font-size:7px;color:rgba(255,255,255,0.25);margin-bottom:2px;" id="myDefLabel">DEF</div>
+          <div class="my-zone-cards-h" id="field-DEF"></div>
+        </div>
+      </div>
+      <div class="action-bar">
+        <div class="draw-remain" id="drawCount2">🃏 0 of 2</div>
+        <button class="abtn abtn-end" id="endTurnBtn2" onclick="endTurn()" disabled>✅ End Turn</button>
+      </div>
+    </div>
+  </div><!-- end main-layout -->
+
+  <!-- Action bar + كروت اليد + burned zone — كلهم في الأسفل خارج main-layout -->
+  <div id="action-bar-2p" style="flex-shrink:0;background:rgba(0,0,0,0.75);padding:4px 8px;display:none;gap:6px;align-items:center;justify-content:center;border-top:1px solid rgba(255,255,255,0.15);">
+    <button id="deckPile" onclick="drawCard()" style="padding:6px 12px;border-radius:8px;border:1.5px solid rgba(0,229,255,0.5);background:rgba(0,20,40,0.9);color:#00e5ff;font-family:Orbitron,sans-serif;font-size:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;transition:opacity 0.2s;">
+      <span id="deckCount">?</span>
+      <span id="deckHint" style="font-size:9px;opacity:0.8;">🃏 Draw</span>
+    </button>
+    <button class="abtn abtn-end" id="endTurnBtn" onclick="endTurn()" disabled style="font-size:12px;padding:6px 16px;">✅ End Turn</button>
+  </div>
+
+  <!-- كروت اليد + منطقة المحروق — في صف واحد، المحروق أقصى اليسار معزول -->
+  <div style="flex-shrink:0;display:flex;align-items:flex-end;background:rgba(0,0,0,0.6);">
+    <!-- منطقة الكروت المحروقة — أقصى اليسار معزولة -->
+    <div id="burned-zone" dir="ltr" style="flex-shrink:0;order:-1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:4px 4px 4px 6px;border-right:1px solid rgba(255,80,80,0.25);min-width:48px;">
+      <div style="font-size:7px;color:rgba(255,100,100,0.9);text-shadow:0 1px 3px #000;text-align:center;font-family:Tajawal,sans-serif;line-height:1;margin-bottom:2px;">🔥</div>
+      <div id="burned-stack" style="position:relative;width:38px;height:54px;"></div>
+    </div>
+    <!-- كروت اليد -->
+    <div class="hand-area" id="myHand" style="flex:1;background:transparent;min-height:74px;"></div>
+  </div>
+  <div class="name-bar" id="myNameBar">👤 You</div>
+</div>
+
+<!-- ZONE POPUP -->
+<div class="popup-overlay" id="zone-popup">
+  <div class="popup-box">
+    <div class="popup-title" id="zonePopupTitle">Choose Zone</div>
+    <div class="zone-btns" id="zoneBtns"></div><br>
+    <button class="btn btn-outline" style="max-width:200px" onclick="closeZonePopup()" id="zoneCancelBtn">Cancel</button>
+  </div>
+</div>
+
+<!-- WIN -->
+<div class="popup-overlay" id="win-screen">
+  <div class="popup-box" style="max-width:360px;max-height:90vh;overflow-y:auto;gap:12px;display:flex;flex-direction:column;align-items:center;">
+    <div class="win-trophy">🏆</div>
+    <div class="win-title" id="winTitle">You Win!</div>
+    <div class="win-sub" id="winSub"></div>
+    <!-- تشكيلة الفايز -->
+    <div class="win-formation" id="winFormation" style="display:none;width:100%">
+      <div class="win-formation-title" id="winFormationTitle">WINNER'S FORMATION</div>
+      <div class="win-zones" id="winZones"></div>
+    </div>
+    <!-- كروت محروقة -->
+    <div class="burned-section" id="winBurned" style="display:none;width:100%">
+      <div class="burned-title" id="winBurnedTitle">🔥 BURNED CARDS</div>
+      <div class="burned-cards" id="winBurnedCards"></div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="playAgainWithAd()" id="newGameBtn">🔄 Play Again</button>
+  </div>
+</div>
+
+<div class="pending-banner" id="pendingBanner"></div>
+
+<!-- CANCEL ORDER POPUP -->
+<div class="popup-overlay" id="cancel-modal" style="z-index:600;">
+  <div class="popup-box">
+    <div class="popup-title" style="color:#f1c40f;" id="cancelTitle">⚠️ Attack!</div>
+    <div class="popup-msg" id="cancel-msg"></div>
+    <div style="color:rgba(255,255,255,0.5);font-size:12px;margin-bottom:16px;" id="cancelQuestion">You have Cancel Order — use it?</div>
+    <!-- Timer Bar -->
+    <div style="width:100%;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;margin-bottom:16px;overflow:hidden;">
+      <div id="cancel-timer-bar" style="height:100%;width:100%;background:#f1c40f;border-radius:3px;transition:width linear 7.5s;"></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button class="btn btn-primary" id="cancelYesBtn" style="max-width:130px;">✅ Use Cancel</button>
+      <button class="btn btn-outline" id="cancelNoBtn" style="max-width:130px;">❌ Accept Attack</button>
+    </div>
+  </div>
+</div>
+
+<div class="popup-overlay" id="errorPopup">
+  <div class="popup-box">
+    <div class="popup-title" style="color:#ff3b3b">⚠️</div>
+    <div class="popup-msg" id="errorMsg"></div>
+    <button class="btn btn-outline" onclick="closeError()" id="errorOkBtn">OK</button>
+  </div>
+</div>
+
+
+
+
+
+<script>
+// ===== LANGUAGE SYSTEM =====
+let currentLang = 'en';
+
+const translations = {
+  ar: {
+    // Lobby
+    logoSub: 'لعبة كروت أونلاين',
+    playerNamePlaceholder: 'اسمك',
+    createRoomBtn: '🏟️ إنشاء غرفة',
+    orDivider: '— أو —',
+    joinCodePlaceholder: 'كود الغرفة (6 أرقام)',
+    joinRoomBtn: '🔗 الانضمام لغرفة',
+    
+    // Waiting
+    roomCodeLabel: 'كود الغرفة — شاركه مع أصدقائك',
+    waitingMsg: 'انتظار لاعب آخر...',
+    waitingMsgReady: 'جاهز! اضغط "ابدأ اللعبة"',
+    startGameBtn: '🎮 ابدأ اللعبة',
+    copyCodeBtn: '📋 نسخ الكود',
+    
+    // Game
+    yourTurn: 'دورك ⚡',
+    turnOf: 'دور',
+    you: 'أنت',
+    deckLbl: 'كروت',
+    deckHint: 'اضغط للسحب',
+    deckHintDrawn: 'تم السحب',
+    discardLabel: 'مرمى',
+    drawCount: '🃏 {0} من 2',
+    endTurnBtn: '✅ إنهاء الدور',
+    
+    // Zone labels
+    GK: 'حارس',
+    DEF: 'دفاع',
+    MID: 'وسط',
+    ATK: 'هجوم',
+    
+    // Zone popup
+    zonePopupTitle: 'اختر المركز',
+    zoneCancelBtn: 'إلغاء',
+    zoneGoalkeeper: '🧤 حارس',
+    zoneDefense: '🛡️ دفاع',
+    zoneMidfield: '🎯 وسط',
+    zoneAttack: '⚽ هجوم',
+    
+    // Win screen
+    youWin: '🏆 فزت!',
+    playerWins: '{0} فاز!',
+    wellDone: 'أحسنت! تشكيلة كاملة!',
+    tryAgain: 'حاول مرة أخرى!',
+    newGameBtn: '🔄 لعبة جديدة',
+    playAgainBtn: '🔄 ألعب مرة أخرى',
+    
+    // Cancel popup
+    cancelTitle: '⚠️ هجوم!',
+    cancelQuestion: 'عندك Cancel Order — تستخدمها؟',
+    cancelYesBtn: '✅ استخدم Cancel',
+    cancelNoBtn: '❌ اقبل الهجوم',
+    
+    // Error messages
+    enterName: 'اكتب اسمك الأول!',
+    enterNameAndCode: 'اكتب اسمك والكود!',
+    codeCopied: '✅ تم نسخ الكود!',
+    maxDrawReached: 'وصلت للحد الأقصى (كارتين)!',
+    selectSpecialFirst: 'اختر كارت خاص الأول!',
+    selectYourCardFirst: 'اختر كارتك من الملعب الأول!',
+    fieldFull: 'الملعب ممتلئ (11 لاعب)!',
+    maxLimitInZone: 'وصلت للحد الأقصى في {0} ({1})!',
+    mustPlaceCorrect: 'لازم تحط الكارت في المركز الصحيح ({0})!',
+    cannotPlaceSpecial: 'الكروت الخاصة ما تتحط في الملعب!',
+    selectToRemove: 'اختر لاعب من ملعبك لإزالته',
+    useAutomatically: 'هيتستخدم تلقائي لما يهاجموك',
+    selectOpponentCard: 'اختر كارت الخصم المستهدف',
+    nowSelectOpponent: 'دلوقتي اختر كارت الخصم',
+    specialCancelled: '{0} ألغى الكارت الخاص! 🚫',
+    playerLeft: '{0} غادر اللعبة',
+    
+    // Special cards (for banner)
+    'Red Card': 'كارت أحمر',
+    'Yellow Card': 'كارت أصفر',
+    'Offside': 'تسلل',
+    'Swap': 'تبديل',
+    'Contract': 'عقد',
+    'Loan': 'إعارة',
+    'Cancel Order': 'إلغاء أمر',
+    'Trash Player': 'إزالة لاعب',
+    
+    // Players list
+    host: '👑 {0} (المضيف)',
+    player: '🎮 {0}',
+    
+    errorOk: 'حسناً'
+  },
+  en: {
+    // Lobby
+    logoSub: 'ONLINE CARD GAME',
+    playerNamePlaceholder: 'Your Name',
+    createRoomBtn: '🏟️ Create Room',
+    orDivider: '— or —',
+    joinCodePlaceholder: 'Room Code (6 digits)',
+    joinRoomBtn: '🔗 Join Room',
+    
+    // Waiting
+    roomCodeLabel: 'Room Code — Share with your friends',
+    waitingMsg: 'Waiting for another player...',
+    waitingMsgReady: 'Ready! Press "Start Game"',
+    startGameBtn: '🎮 Start Game',
+    copyCodeBtn: '📋 Copy Code',
+    
+    // Game
+    yourTurn: 'Your Turn ⚡',
+    turnOf: '',
+    you: 'You',
+    deckLbl: 'Cards',
+    deckHint: 'Tap to draw',
+    deckHintDrawn: 'All drawn',
+    discardLabel: 'Discard',
+    drawCount: '🃏 {0} of 2',
+    endTurnBtn: '✅ End Turn',
+    
+    // Zone labels
+    GK: 'GK',
+    DEF: 'DEF',
+    MID: 'MID',
+    ATK: 'ATK',
+    
+    // Zone popup
+    zonePopupTitle: 'Choose Zone',
+    zoneCancelBtn: 'Cancel',
+    zoneGoalkeeper: '🧤 Goalkeeper',
+    zoneDefense: '🛡️ Defense',
+    zoneMidfield: '🎯 Midfield',
+    zoneAttack: '⚽ Attack',
+    
+    // Win screen
+    youWin: '🏆 You Win!',
+    playerWins: '{0} Wins!',
+    wellDone: 'Well done! Formation complete!',
+    tryAgain: 'Try again!',
+    newGameBtn: '🔄 New Game',
+    playAgainBtn: '🔄 Play Again',
+    
+    // Cancel popup
+    cancelTitle: '⚠️ Attack!',
+    cancelQuestion: 'You have Cancel Order — use it?',
+    cancelYesBtn: '✅ Use Cancel',
+    cancelNoBtn: '❌ Accept Attack',
+    
+    // Error messages
+    enterName: 'Enter your name first!',
+    enterNameAndCode: 'Enter your name and code!',
+    codeCopied: '✅ Code copied!',
+    maxDrawReached: 'Max draw reached (2 cards)!',
+    selectSpecialFirst: 'Select a special card first!',
+    selectYourCardFirst: 'Select your card from your field first!',
+    fieldFull: 'Field is full (11 players)!',
+    maxLimitInZone: 'Max limit in {0} ({1})!',
+    mustPlaceCorrect: 'Must place card in correct position ({0})!',
+    cannotPlaceSpecial: 'Special cards cannot be placed on the field!',
+    selectToRemove: 'Select a player from your field to remove',
+    useAutomatically: 'Will be used automatically when attacked',
+    selectOpponentCard: 'Select the opponent card to target',
+    nowSelectOpponent: 'Now select the opponent card',
+    specialCancelled: '{0} cancelled the special card! 🚫',
+    playerLeft: '{0} left the game',
+    
+    // Special cards (for banner)
+    'Red Card': 'Red Card',
+    'Yellow Card': 'Yellow Card',
+    'Offside': 'Offside',
+    'Swap': 'Swap',
+    'Contract': 'Contract',
+    'Loan': 'Loan',
+    'Cancel Order': 'Cancel Order',
+    'Trash Player': 'Trash Player',
+    
+    // Players list
+    host: '👑 {0} (Host)',
+    player: '🎮 {0}',
+    
+    errorOk: 'OK'
+  }
+};
+
+function t(key, ...args) {
+  let text = translations[currentLang][key] || translations['en'][key] || key;
+  args.forEach((arg, i) => {
+    text = text.replace(`{${i}}`, arg);
+  });
+  return text;
+}
+
+function selectLanguage(lang) {
+  currentLang = lang;
+  document.getElementById('lang-screen').classList.add('hidden');
+  document.getElementById('lobby').classList.add('active');
+  // تحديث نصوص الإعلان
+
+
+
+
+  updateUILanguage();
+  preloadAllImages();
+}
+
+function updateUILanguage() {
+  // Lobby
+  document.getElementById('logoSub').textContent = t('logoSub');
+  document.getElementById('playerName').placeholder = t('playerNamePlaceholder');
+  document.getElementById('createRoomBtn').innerHTML = t('createRoomBtn');
+  document.getElementById('orDivider').textContent = t('orDivider');
+  document.getElementById('joinCode').placeholder = t('joinCodePlaceholder');
+  document.getElementById('joinRoomBtn').innerHTML = t('joinRoomBtn');
+  
+  // Waiting
+  document.getElementById('roomCodeLabel').textContent = t('roomCodeLabel');
+  document.getElementById('startGameBtn').textContent = t('startGameBtn');
+  document.getElementById('copyCodeBtn').textContent = t('copyCodeBtn');
+  
+  // Game — 2-player action bar
+  document.getElementById('endTurnBtn').textContent = t('endTurnBtn');
+  const deckHintEl = document.getElementById('deckHint');
+  if(deckHintEl) deckHintEl.textContent = '🃏 '+t('deckHint');
+  
+  // Game — 3-4 player elements
+  const deckLblEl = document.getElementById('deckLbl');
+  if(deckLblEl) deckLblEl.textContent = t('deckLbl');
+  const deckHint2El = document.getElementById('deckHint2');
+  if(deckHint2El) deckHint2El.textContent = t('deckHint');
+  const deckLbl2El = document.getElementById('deckLbl2');
+  if(deckLbl2El) deckLbl2El.textContent = t('deckLbl');
+  const discardLabelEl = document.getElementById('discardLabel');
+  if(discardLabelEl) discardLabelEl.textContent = t('discardLabel');
+  const discardLabel2El = document.getElementById('discardLabel2');
+  if(discardLabel2El) discardLabel2El.textContent = t('discardLabel');
+  const endTurnBtn2El = document.getElementById('endTurnBtn2');
+  if(endTurnBtn2El) endTurnBtn2El.textContent = t('endTurnBtn');
+  
+  // Zone labels (3-4p)
+  document.getElementById('myGkLabel').textContent = t('GK');
+  document.getElementById('myDefLabel').textContent = t('DEF');
+  document.getElementById('myMidLabel').textContent = t('MID');
+  document.getElementById('myAtkLabel').textContent = t('ATK');
+  
+  // Zone popup
+  document.getElementById('zonePopupTitle').textContent = t('zonePopupTitle');
+  document.getElementById('zoneCancelBtn').textContent = t('zoneCancelBtn');
+  
+  // Win screen
+  document.getElementById('newGameBtn').textContent = t('playAgainBtn');
+  
+  // Cancel popup
+  document.getElementById('cancelTitle').textContent = t('cancelTitle');
+  document.getElementById('cancelQuestion').textContent = t('cancelQuestion');
+  document.getElementById('cancelYesBtn').textContent = t('cancelYesBtn');
+  document.getElementById('cancelNoBtn').textContent = t('cancelNoBtn');
+  
+  // Error
+  document.getElementById('errorOkBtn').textContent = t('errorOk');
+  
+  // RTL/LTR direction
+  document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = currentLang;
+}
+
+// ===== GAME VARIABLES =====
+let myIndex=-1, myHand=[], myField={GK:[],DEF:[],MID:[],ATK:[]};
+let opponents=[], selectedCard=null, isMyTurn=false;
+let myYellows={}, currentTurn=-1, deckCount=0, firstTurn=true, discardTop=null;
+let placedThisTurn=0, drawnThisTurn=0, myName='', mySwapCard=null, turnEnded=false;
+let roomCode='', gameBurnedPile=[];
+let isRoomOwner=false;
+let numPlayers=2;
+
+</script>
+
+<!-- CHAT TOGGLE BUTTON -->
+<button id="chat-toggle" onclick="toggleChat()" title="Chat">💬</button>
+
+<!-- CHAT BOX -->
+<div id="chat-box">
+  <div class="chat-header">
+    <span>💬 CHAT</span>
+    <button class="chat-close" onclick="toggleChat()">×</button>
+  </div>
+  <div id="chat-messages"></div>
+  <div class="chat-reactions">
+    <button class="react-btn" onclick="sendQuickMsg('👍')">👍</button>
+    <button class="react-btn" onclick="sendQuickMsg('😂')">😂</button>
+    <button class="react-btn" onclick="sendQuickMsg('🔥')">🔥</button>
+    <button class="react-btn" onclick="sendQuickMsg('😤')">😤</button>
+    <button class="react-btn" onclick="sendQuickMsg('🎯')">🎯</button>
+    <button class="react-btn" onclick="sendQuickMsg('GG')">GG</button>
+  </div>
+  <div class="chat-input-row">
+    <input id="chat-input" placeholder="اكتب رسالة..." maxlength="80"
+      onkeydown="if(event.key==='Enter')sendChatMsg()">
+    <button id="chat-send" onclick="sendChatMsg()">➤</button>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
