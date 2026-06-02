@@ -1010,10 +1010,13 @@ function updateUILanguage() {
   // Lobby
   document.getElementById('logoSub').textContent = t('logoSub');
   document.getElementById('playerName').placeholder = t('playerNamePlaceholder');
-  document.getElementById('createRoomBtn').innerHTML = t('createRoomBtn');
-  document.getElementById('orDivider').textContent = t('orDivider');
-  document.getElementById('joinCode').placeholder = t('joinCodePlaceholder');
-  document.getElementById('joinRoomBtn').innerHTML = t('joinRoomBtn');
+  const crTxt = document.getElementById('createRoomTxt');
+  if(crTxt) crTxt.textContent = currentLang==='ar'?'إنشاء غرفة':'Create Room';
+  const orDiv = document.getElementById('orDivider');
+  if(orDiv) orDiv.textContent = t('orDivider');
+  document.getElementById('joinCode').placeholder = currentLang==='ar'?'كود الغرفة':'Room Code';
+  const jrTxt = document.getElementById('joinRoomTxt');
+  if(jrTxt) jrTxt.textContent = currentLang==='ar'?'انضمام':'Join Room';
   
   // Waiting
   document.getElementById('roomCodeLabel').textContent = t('roomCodeLabel');
