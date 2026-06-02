@@ -11,7 +11,159 @@
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html,body { width:100%; height:100%; overflow:hidden; background:#000000; font-family:'Orbitron','Tajawal',sans-serif; color:#fff; }
 
-/* ===== LANGUAGE SELECTION SCREEN ===== */
+
+/* ===== LANG SCREEN NEW ===== */
+#lang-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: #000;
+  overflow: hidden;
+}
+#lang-screen.hidden { display: none; }
+.ls-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(0,229,255,0.15) 0%, transparent 65%),
+              radial-gradient(ellipse at 80% 100%, rgba(255,215,0,0.08) 0%, transparent 50%);
+  pointer-events: none;
+}
+.ls-content {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 24px; padding: 40px 30px; width: 100%; max-width: 340px;
+}
+.ls-logo { text-align: center; }
+.ls-logo-top {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(32px, 9vw, 48px); font-weight: 900;
+  color: #fff; letter-spacing: 8px;
+  text-shadow: 0 0 30px rgba(255,255,255,0.3);
+}
+.ls-logo-bot {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(32px, 9vw, 48px); font-weight: 900;
+  color: #00e5ff; letter-spacing: 8px;
+  text-shadow: 0 0 30px rgba(0,229,255,0.5);
+  margin-top: -6px;
+}
+.ls-logo-sub {
+  font-family: 'Tajawal', sans-serif;
+  font-size: 16px; color: rgba(255,255,255,0.4);
+  margin-top: 8px; letter-spacing: 2px;
+}
+.ls-divider {
+  width: 60px; height: 2px;
+  background: linear-gradient(90deg, transparent, #00e5ff, transparent);
+}
+.ls-pick {
+  font-family: 'Tajawal', sans-serif;
+  font-size: 14px; color: rgba(255,255,255,0.4);
+  letter-spacing: 1px; text-align: center;
+}
+.ls-btns { display: flex; flex-direction: column; gap: 14px; width: 100%; }
+.ls-btn {
+  width: 100%; padding: 18px 24px;
+  border: none; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  font-size: 18px; font-weight: 700; cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  letter-spacing: 1px;
+}
+.ls-btn:active { transform: scale(0.96); }
+.ls-en {
+  background: #ffffff; color: #0a0a0a;
+  font-family: 'Orbitron', sans-serif;
+  box-shadow: 0 0 25px rgba(255,255,255,0.2);
+}
+.ls-en:hover { box-shadow: 0 0 40px rgba(255,255,255,0.4); }
+.ls-ar {
+  background: linear-gradient(135deg, rgba(0,229,255,0.15), rgba(0,229,255,0.05));
+  color: #fff; border: 1.5px solid rgba(0,229,255,0.4);
+  font-family: 'Tajawal', sans-serif; font-size: 20px;
+  box-shadow: 0 0 20px rgba(0,229,255,0.1);
+}
+.ls-ar:hover { box-shadow: 0 0 35px rgba(0,229,255,0.3); border-color: rgba(0,229,255,0.8); }
+.ls-flag { font-size: 22px; }
+
+/* ===== LOBBY NEW ===== */
+#lobby { background: #000; position: relative; overflow: hidden; }
+.lb-bg {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% -10%, rgba(0,229,255,0.12) 0%, transparent 60%),
+              radial-gradient(ellipse at 90% 90%, rgba(255,215,0,0.06) 0%, transparent 40%);
+}
+.lb-content {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 28px; padding: 40px 24px; width: 100%; max-width: 340px;
+}
+.lb-logo { text-align: center; }
+.lb-logo-main {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(22px, 6vw, 30px); font-weight: 900;
+  color: #fff; letter-spacing: 3px;
+  text-shadow: 0 0 20px rgba(255,255,255,0.3);
+}
+.lb-logo-main span { color: #00e5ff; }
+.lb-logo-sub {
+  font-size: 11px; color: rgba(255,255,255,0.3);
+  letter-spacing: 4px; margin-top: 4px;
+  font-family: 'Orbitron', sans-serif;
+}
+.lb-card {
+  width: 100%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px; padding: 24px 20px;
+  display: flex; flex-direction: column; gap: 0;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+}
+.lb-section { display: flex; flex-direction: column; gap: 10px; }
+.lb-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px; color: rgba(255,255,255,0.3);
+  letter-spacing: 3px;
+}
+.lb-inp {
+  width: 100%; padding: 14px 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 12px; color: #fff;
+  font-family: 'Tajawal', sans-serif; font-size: 16px;
+  outline: none; text-align: center; transition: border 0.2s;
+}
+.lb-inp::placeholder { color: rgba(255,255,255,0.2); }
+.lb-inp:focus { border-color: rgba(0,229,255,0.5); background: rgba(0,229,255,0.05); }
+.lb-code { letter-spacing: 6px; font-family: 'Orbitron', sans-serif; font-size: 18px; }
+.lb-btn-main, .lb-btn-sec {
+  width: 100%; padding: 15px;
+  border: none; border-radius: 12px;
+  font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 900;
+  cursor: pointer; letter-spacing: 1px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.lb-btn-main:active, .lb-btn-sec:active { transform: scale(0.97); }
+.lb-btn-main {
+  background: #00e5ff; color: #050d14;
+  box-shadow: 0 0 20px rgba(0,229,255,0.3);
+}
+.lb-btn-main:hover { box-shadow: 0 0 35px rgba(0,229,255,0.5); }
+.lb-btn-sec {
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  color: #fff;
+}
+.lb-btn-sec:hover { background: rgba(255,255,255,0.12); }
+.lb-or {
+  text-align: center; padding: 14px 0;
+  color: rgba(255,255,255,0.2);
+  font-size: 12px; letter-spacing: 3px;
+  font-family: 'Orbitron', sans-serif;
+}
+
+
+/* ===== OLD LANG STYLES (unused) ===== */
 #lang-screen {
   width: 100%;
   height: 100%;
@@ -414,30 +566,55 @@ html,body { width:100%; height:100%; overflow:hidden; background:#000000; font-f
 </head>
 <body>
 
-<!-- BANNER AD - shown outside game -->
-
-
-<!-- LANGUAGE SELECTION SCREEN -->
+<!-- LANGUAGE SCREEN -->
 <div id="lang-screen">
-  <div class="lang-choose-text">
-    <div class="lang-choose-en">CHOOSE LANGUAGE</div>
-    <div class="lang-choose-ar">اختر اللغة</div>
-  </div>
-  <div class="lang-buttons">
-    <button class="lang-btn" onclick="selectLanguage('en');">English</button>
-    <button class="lang-btn ar-btn" onclick="selectLanguage('ar');">عربي</button>
+  <div class="ls-bg"></div>
+  <div class="ls-content">
+    <div class="ls-logo">
+      <div class="ls-logo-top">ACTION</div>
+      <div class="ls-logo-bot">ALMALA3B</div>
+      <div class="ls-logo-sub">⚽ أكشن الملاعب</div>
+    </div>
+    <div class="ls-divider"></div>
+    <div class="ls-pick">Choose Language · اختر اللغة</div>
+    <div class="ls-btns">
+      <button class="ls-btn ls-en" onclick="selectLanguage('en')">
+        <span class="ls-flag">🇬🇧</span>
+        <span>English</span>
+      </button>
+      <button class="ls-btn ls-ar" onclick="selectLanguage('ar')">
+        <span class="ls-flag">🇸🇦</span>
+        <span>عربي</span>
+      </button>
+    </div>
   </div>
 </div>
 
 <!-- LOBBY -->
 <div id="lobby" class="screen">
-  <div><div class="logo-title">Action <span>Almala3b</span></div><div class="logo-sub" id="logoSub">ONLINE CARD GAME</div></div>
-  <div class="input-group">
-    <input class="inp" id="playerName" placeholder="Your Name" maxlength="15">
-    <button class="btn btn-primary" onclick="createRoom()" id="createRoomBtn">🏟️ Create Room</button>
-    <div class="or-divider" id="orDivider">— or —</div>
-    <input class="inp" id="joinCode" placeholder="Room Code (6 digits)" maxlength="6" inputmode="numeric">
-    <button class="btn btn-outline" onclick="joinRoom()" id="joinRoomBtn">🔗 Join Room</button>
+  <div class="lb-bg"></div>
+  <div class="lb-content">
+    <div class="lb-logo">
+      <div class="lb-logo-main">ACTION <span>ALMALA3B</span></div>
+      <div class="lb-logo-sub" id="logoSub">ONLINE CARD GAME</div>
+    </div>
+    <div class="lb-card">
+      <div class="lb-section">
+        <div class="lb-label" id="createLabel">NEW GAME</div>
+        <input class="lb-inp" id="playerName" placeholder="Enter your name" maxlength="15">
+        <button class="lb-btn-main" id="createRoomBtn" onclick="createRoom()">
+          <span>🏟️</span> <span id="createRoomTxt">Create Room</span>
+        </button>
+      </div>
+      <div class="lb-or"><span id="orDivider">— OR —</span></div>
+      <div class="lb-section">
+        <div class="lb-label" id="joinLabel">JOIN GAME</div>
+        <input class="lb-inp lb-code" id="joinCode" placeholder="Room Code" maxlength="6" inputmode="numeric">
+        <button class="lb-btn-sec" id="joinRoomBtn" onclick="joinRoom()">
+          <span>🔗</span> <span id="joinRoomTxt">Join Room</span>
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
