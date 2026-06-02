@@ -825,11 +825,6 @@ function selectLanguage(lang) {
   currentLang = lang;
   document.getElementById('lang-screen').classList.add('hidden');
   document.getElementById('lobby').classList.add('active');
-  // تحديث نصوص الإعلان
-
-
-
-
   updateUILanguage();
   preloadAllImages();
 }
@@ -900,10 +895,8 @@ let opponents=[], selectedCard=null, isMyTurn=false;
 let myYellows={}, currentTurn=-1, deckCount=0, firstTurn=true, discardTop=null;
 let placedThisTurn=0, drawnThisTurn=0, myName='', mySwapCard=null, turnEnded=false;
 let roomCode='', gameBurnedPile=[];
-let isRoomOwner=false;
-let numPlayers=2;
-
-</script>
+let isRoomOwner=false, numPlayers=2;
+let roomChannel=null;
 
 <!-- CHAT TOGGLE BUTTON -->
 <button id="chat-toggle" onclick="toggleChat()" title="Chat">💬</button>
@@ -929,6 +922,1041 @@ let numPlayers=2;
     <button id="chat-send" onclick="sendChatMsg()">➤</button>
   </div>
 </div>
+
+function showCancelPopup(cardName, fromPlayer, cancelCardId) {
+  const modal = document.getElementById('cancel-modal');
+  const msg = document.getElementById('cancel-msg');
+  const timerBar = document.getElementById('cancel-timer-bar');
+  
+  const isEn = (currentLang === 'en');
+  if(isEn) {
+    msg.innerHTML = `Player <b>${fromPlayer}</b> used <b>${cardName}</b>!<br>Do you want to use <b>Cancel Order</b>?`;
+  } else {
+    msg.innerHTML = `اللاعب <b>${fromPlayer}</b> استخدم <b>${cardName}</b>!<br>هل تريد استخدام كارت <b>إلغاء الأمر</b>؟`;
+  }
+
+  modal.classList.add('show');
+  timerBar.style.transition = 'none';
+  timerBar.style.width = '100%';
+  
+  setTimeout(() => {
+    timerBar.style.transition = 'width linear 7s';
+    timerBar.style.width = '0%';
+  }, 10);
+
+  if(cancelTimeout) clearTimeout(cancelTimeout);
+  cancelTimeout = setTimeout(() => {
+    modal.classList.remove('show');
+  }, 7000);
+
+  document.getElementById('cancelYesBtn').onclick = () => {
+    if(cancelTimeout) clearTimeout(cancelTimeout);
+    modal.classList.remove('show');
+    cancelOrder(cancelCardId, window._pendingPayload);
+  };
+  
+  document.getElementById('cancelNoBtn').onclick = () => {
+    if(cancelTimeout) clearTimeout(cancelTimeout);
+    modal.classList.remove('show');
+  };
+}
+
+
+// كروت خاصة اتلعبت — بتظهر في منطقة المحروق
+window._lastSpecialCards = [];
+function trackSpecialPlayed(card){
+  if(!card) return;
+  const entry={...card, burnedBy:'special', type:'special'};
+  if(!window._lastSpecialCards.find(c=>c.id===card.id)){
+    window._lastSpecialCards.push(entry);
+    if(window._lastSpecialCards.length>10) window._lastSpecialCards.shift();
+  }
+  // في الثنائي: ابعت للسيرفر يعمل broadcast للخصم كمان
+  if(numPlayers===2){
+    /* broadcast handled by supabase */
+  }
+}
+
+function drawCard(){
+  if(!isMyTurn) return;
+  if(drawnThisTurn>=2) return showToast(t('maxDrawReached'),true);
+  drawCard();
+  drawnThisTurn++; updateDrawCount();
+}
+
+function updateDrawCount(){
+  // used for 2p mode deck button — handled in renderGame too
+  const deck=document.getElementById('deckPile');
+  const hint=document.getElementById('deckHint');
+  const dcEl=document.getElementById('deckCount');
+  if(dcEl) dcEl.textContent=deckCount;
+  if(deck){
+    deck.classList.toggle('drawn2', drawnThisTurn>=2);
+    if(hint){
+      if(!isMyTurn) hint.textContent='🃏';
+      else if(drawnThisTurn>=2) hint.textContent=t('deckHintDrawn');
+      else hint.textContent='🃏 '+t('deckHint');
+    }
+  }
+}
+
+function updateDrawCount2(){
+  const el=document.getElementById('drawCount2');
+  if(el) el.textContent=t('drawCount',drawnThisTurn);
+  // تحديث hint الـ deck في 3-4 لاعبين
+  const hint2=document.getElementById('deckHint2');
+  if(hint2){
+    if(!isMyTurn) hint2.textContent=t('deckLbl');
+    else if(drawnThisTurn>=2) hint2.textContent=t('deckHintDrawn');
+    else hint2.textContent=t('deckHint');
+  }
+}
+
+function endTurn() {
+  if (!isMyTurn) return;
+  endTurn();
+  turnEnded = true;
+  const btn = document.getElementById('endTurnBtn') || document.getElementById('endTurnBtn2');
+  if(btn) btn.disabled = true;
+}
+
+
+
+function getCardBg(card){
+  const m={GK:'linear-gradient(135deg,#f5a623,#e08800)',DEF:'linear-gradient(135deg,#4a90d9,#2874b5)',MID:'linear-gradient(135deg,#27ae60,#1e8449)',ATK:'linear-gradient(135deg,#e74c3c,#c0392b)',JOKER:'linear-gradient(135deg,#8e44ad,#6c3483)'};
+  return card.type==='special'?'linear-gradient(135deg,#2c3e50,#1a252f)':(card.joker?m.JOKER:(m[card.zone]||m.GK));
+}
+
+function renderGame(){
+  document.getElementById('myNameBar').textContent=`👤 ${myName}`;
+  document.getElementById('topName').textContent=`👤 ${myName}`;
+  
+  if(isMyTurn) {
+    document.getElementById('turnIndicator').textContent=t('yourTurn');
+  } else {
+    const oppName = opponents[currentTurn>myIndex?currentTurn-myIndex-1:currentTurn]?.name||'...';
+    document.getElementById('turnIndicator').textContent=(currentLang==='ar'?t('turnOf')+' ':'')+oppName+(currentLang==='ar'?'':'\'s Turn');
+  }
+
+  if(numPlayers===2){
+    const pb=document.getElementById('pitch-bg'); if(pb) pb.style.display='';
+    document.getElementById('two-player-layout').style.display='flex';
+    const ab=document.getElementById('action-bar-2p');
+    if(ab) ab.style.display='flex';
+    document.getElementById('opp-top-area').style.display='none';
+    document.getElementById('middle-zone-old').style.display='none';
+    document.getElementById('my-section-old').style.display='none';
+    // إظهار منطقة المحروق في الثنائي
+    const bz=document.getElementById('burned-zone'); if(bz) bz.style.display='flex';
+
+    const endBtn=document.getElementById('endTurnBtn');
+    if(endBtn){
+      endBtn.disabled=!isMyTurn||turnEnded;
+      endBtn.textContent=t('endTurnBtn');
+    }
+    // update deck count display
+    const dc=document.getElementById('deckCount');
+    if(dc) dc.textContent=deckCount;
+    // update draw hint (عربي أو انجليزي)
+    const hint=document.getElementById('deckHint');
+    if(hint){
+      if(!isMyTurn){ hint.textContent='🃏'; }
+      else if(drawnThisTurn>=2){ hint.textContent=t('deckHintDrawn'); }
+      else { hint.textContent='🃏 '+t('deckHint'); }
+    }
+    // disable deck if drawn 2
+    const dp=document.getElementById('deckPile');
+    if(dp){ dp.classList.toggle('drawn2', drawnThisTurn>=2); }
+    renderBurnedZone();
+    renderMyFormation();
+    renderOppFormation();
+  } else {
+    // 3-4 players: show old layout, hide pitch background
+    document.getElementById('two-player-layout').style.display='none';
+    const ab=document.getElementById('action-bar-2p');
+    if(ab) ab.style.display='none';
+    document.getElementById('opp-top-area').style.display='';
+    document.getElementById('middle-zone-old').style.display='';
+    document.getElementById('my-section-old').style.display='';
+    const pb=document.getElementById('pitch-bg'); if(pb) pb.style.display='none';
+    // إظهار منطقة المحروق في الثلاثي والرباعي كمان
+    const bz=document.getElementById('burned-zone'); if(bz){ bz.style.display='flex'; }
+
+    const endBtn2=document.getElementById('endTurnBtn2');
+    if(endBtn2){
+      endBtn2.disabled=!isMyTurn||turnEnded;
+      endBtn2.textContent=t('endTurnBtn');
+    }
+    updateDrawCount2();
+    renderDiscard();
+    renderMyField();
+    renderOpponents();
+  }
+  renderMyHand();
+}
+
+// ====== BURNED ZONE (2-player) ======
+function renderBurnedZone(){
+  const zone=document.getElementById('burned-zone');
+  if(!zone) return;
+  // امسح كل محتوى المنطقة وابنيها من جديد
+  zone.innerHTML='<div style="font-size:7px;color:rgba(255,100,100,0.9);text-shadow:0 1px 3px #000;text-align:center;font-family:Tajawal,sans-serif;line-height:1;margin-bottom:2px;">🔥</div>';
+  const stackEl=document.createElement('div');
+  stackEl.id='burned-stack';
+  stackEl.style.cssText='position:relative;width:38px;height:54px;';
+  zone.appendChild(stackEl);
+
+  const items=[...gameBurnedPile,...((window._lastSpecialCards)||[])];
+  if(items.length===0) return;
+
+  // اعرض آخر كارت بس (علوي الـ stack)
+  const card=items[items.length-1];
+  const el=document.createElement('div');
+  el.style.cssText=`position:absolute;inset:0;border-radius:5px;overflow:hidden;border:1.5px solid rgba(255,80,80,0.7);box-shadow:0 2px 6px rgba(0,0,0,0.8);background:${getCardBg(card)};`;
+  if(card.type==='player'){
+    const imgSrc=getPlayerImage(card);
+    if(imgSrc){
+      const im=document.createElement('img');
+      im.src=imgSrc;
+      im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;';
+      el.appendChild(im);
+    }
+    if(!card.joker&&card.number){
+      const n=document.createElement('span');
+      n.style.cssText='position:absolute;top:2px;left:2px;font-size:10px;font-weight:900;color:#fff;text-shadow:0 0 4px #000;z-index:5;font-family:Orbitron,sans-serif;';
+      n.textContent=card.number; el.appendChild(n);
+    }
+  } else {
+    const n=document.createElement('span');
+    n.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:7px;color:#fff;text-align:center;padding:2px;font-family:Tajawal,sans-serif;font-weight:700;z-index:5;';
+    n.textContent=currentLang==='ar'?t(card.name):card.name; el.appendChild(n);
+  }
+  const fl=document.createElement('div');
+  fl.style.cssText='position:absolute;bottom:0;left:0;right:0;background:rgba(180,0,0,0.8);font-size:6px;text-align:center;color:#fff;padding:1px;z-index:6;';
+  fl.textContent=card.burnedBy==='red'?'🔴':(card.burnedBy==='yellow2'?'🟡🟡':(card.type==='special'?'⚡':'🔥'));
+  el.appendChild(fl);
+  stackEl.appendChild(el);
+
+  // عدد الكروت المحروقة
+  if(items.length>0){
+    const cnt=document.createElement('div');
+    cnt.style.cssText='font-size:9px;color:rgba(255,120,120,1);text-align:center;font-family:Orbitron,sans-serif;font-weight:700;text-shadow:0 1px 3px #000;margin-top:2px;';
+    cnt.textContent=items.length;
+    zone.appendChild(cnt);
+  }
+}
+
+function renderDiscard(){
+  // For 3-4 players only
+  const slot=document.getElementById('discardSlot2');
+  if(!slot) return;
+  slot.innerHTML='';
+  if(gameBurnedPile && gameBurnedPile.length>0){
+    const last=gameBurnedPile[gameBurnedPile.length-1];
+    const bc=document.createElement('div');
+    bc.style.cssText='width:42px;height:54px;border-radius:5px;position:relative;overflow:hidden;border:1px solid rgba(255,59,59,0.5);flex-shrink:0;background:'+getCardBg(last)+';';
+    const imgSrc=getPlayerImage(last);
+    if(imgSrc){
+      const bi=document.createElement('img');
+      bi.src=imgSrc;
+      bi.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;';
+      bi.loading='lazy';
+      bc.appendChild(bi);
+    }
+    const bn=document.createElement('span');
+    bn.style.cssText='position:absolute;top:2px;left:3px;font-size:12px;font-weight:900;color:#fff;text-shadow:0 0 6px #000,1px 1px 0 #000;z-index:5;';
+    bn.textContent=last.number||'';
+    bc.appendChild(bn);
+    const bfl=document.createElement('div');
+    bfl.style.cssText='position:absolute;bottom:0;left:0;right:0;background:rgba(200,0,0,0.7);font-size:7px;text-align:center;color:#fff;padding:1px;z-index:5;';
+    bfl.textContent='🔥 '+gameBurnedPile.length;
+    bc.appendChild(bfl);
+    slot.appendChild(bc);
+  } else if(discardTop){
+    const c=document.createElement('div'); c.className='discard-card';
+    c.style.background=getCardBg(discardTop);
+    const cardText=discardTop.type==='special'?(currentLang==='ar'?t(discardTop.name):discardTop.name):(discardTop.number||discardTop.zone);
+    c.textContent=cardText;
+    slot.appendChild(c);
+  }
+  const lbl=document.createElement('div'); lbl.className='discard-label';
+  lbl.style.fontSize='6px';
+  lbl.textContent=gameBurnedPile&&gameBurnedPile.length>0?'🔥':t('discardLabel');
+  slot.appendChild(lbl);
+}
+
+// ====== 2-PLAYER FORMATION RENDER ======
+// Maps formation string to zone counts
+function formationZones(f){
+  const m={'4-4-2':{DEF:4,MID:4,ATK:2},'5-3-2':{DEF:5,MID:3,ATK:2},'4-3-3':{DEF:4,MID:3,ATK:3}};
+  return m[f]||m['4-3-3'];
+}
+
+function makeFormCard(card, clickable, zone, oppData){
+  const el=document.createElement('div');
+  el.className='form-card';
+  if(oppData) el.style.borderColor='rgba(255,80,80,0.3)';
+  el.style.background=getCardBg(card);
+  if(card.captain) el.classList.add('captain-card');
+
+  // صورة
+  const imgSrc=getPlayerImage(card);
+  if(imgSrc){
+    const im=document.createElement('img');
+    im.src=imgSrc;
+    im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;';
+    im.loading='lazy';
+    el.appendChild(im);
+  }
+
+  // رقم
+  if(!card.joker && card.number){
+    const n=document.createElement('span');
+    n.style.cssText='position:absolute;top:2px;left:3px;font-family:Orbitron,sans-serif;font-size:11px;font-weight:900;color:#fff;text-shadow:0 0 5px #000,1px 1px 0 #000;z-index:5;line-height:1;';
+    n.textContent=card.number; el.appendChild(n);
+  }
+  // نجمة
+  if(card.star||card.joker){
+    const s=document.createElement('span');
+    s.style.cssText='position:absolute;top:'+(card.joker?'2px':'15px')+';left:2px;font-size:6px;color:#ffd700;text-shadow:0 0 3px #000;z-index:5;';
+    s.textContent='⭐'; el.appendChild(s);
+    if(card.captain){
+      const c=document.createElement('span');
+      c.style.cssText='position:absolute;top:'+(card.joker?'10px':'23px')+';left:3px;font-size:6px;font-weight:900;color:#ffd700;text-shadow:0 0 3px #000;z-index:5;font-family:Orbitron,sans-serif;';
+      c.textContent='C'; el.appendChild(c);
+    }
+  }
+  // إنذار أصفر
+  const yellows=oppData?oppData.yellows:myYellows;
+  if(yellows&&yellows[card.id]){
+    const y=document.createElement('div');
+    y.className='yellow-mark'; el.appendChild(y);
+  }
+  // highlight selected
+  if(!oppData && selectedCard && selectedCard.id===card.id) el.classList.add('selected-form');
+
+  if(oppData && isMyTurn){
+    el.onclick=(e)=>{
+      e.stopPropagation();
+      if(!selectedCard||selectedCard.type!=='special'){showToast(t('selectSpecialFirst'),true);return;}
+      handleOppCardClick(card,oppData);
+    };
+  } else if(clickable && isMyTurn){
+    el.onclick=()=>{
+      if(selectedCard&&selectedCard.type==='special'&&selectedCard.name==='Trash Player'){
+        const sc=selectedCard;
+        playSpecial({cardId:selectedCard.id,targetPlayerIdx:myIndex,targetCardId:card.id});
+        trackSpecialPlayed(sc);
+        placedThisTurn++; selectedCard=null; renderGame();
+      } else if(card.joker){
+        const zones=['GK','DEF','MID','ATK'].filter(z=>z!==zone);
+        showZonePopup(zones,(newZone)=>{moveJoker(card.id,newZone);});
+      } else if(selectedCard&&selectedCard.type==='special'&&selectedCard.name==='Swap'){
+        mySwapCard=card; showToast(t('nowSelectOpponent'));
+      } else {
+        placeSelected(zone);
+      }
+    };
+  }
+  return el;
+}
+
+function renderMyFormation(){
+  const zones=['GK','DEF','MID','ATK'];
+  const fieldCount=Object.values(myField).reduce((s,z)=>s+z.length,0);
+  zones.forEach(zone=>{
+    const row=document.getElementById('my-row-'+zone);
+    if(!row) return;
+    row.innerHTML='';
+    (myField[zone]||[]).forEach(card=>{
+      row.appendChild(makeFormCard(card,true,zone,null));
+    });
+    if(isMyTurn && fieldCount<11){
+      const h=document.createElement('div');
+      h.className='form-drop'; h.textContent='+';
+      h.onclick=()=>{ if(selectedCard) placeSelected(zone); };
+      row.appendChild(h);
+    }
+  });
+}
+
+function renderOppFormation(){
+  const opp=opponents[0];
+  const oppNameEl=document.getElementById('oppFormationName');
+  const oppHandEl=document.getElementById('oppHandCount');
+  if(!opp){
+    if(oppNameEl) oppNameEl.textContent='👤 ...';
+    if(oppHandEl) oppHandEl.textContent='🃏 0';
+    ['GK','DEF','MID','ATK'].forEach(z=>{
+      const r=document.getElementById('opp-row-'+z); if(r) r.innerHTML='';
+    });
+    return;
+  }
+  if(oppNameEl) oppNameEl.textContent=`👤 ${opp.name}${opp.skipped?' ⏭':''}`;
+  if(oppHandEl) oppHandEl.textContent=`🃏 ${opp.handCount}`;
+
+  // Opp formation displayed mirrored: GK at top (far from midline), ATK at bottom (near midline)
+  ['GK','DEF','MID','ATK'].forEach(zone=>{
+    const row=document.getElementById('opp-row-'+zone);
+    if(!row) return;
+    row.innerHTML='';
+    (opp.field[zone]||[]).forEach(card=>{
+      row.appendChild(makeFormCard(card,false,zone,opp));
+    });
+  });
+}
+
+// Old renderMyField for 3-4 players
+function renderMyField(){
+  const fieldCount=Object.values(myField).reduce((s,z)=>s+z.length,0);
+  ['GK','DEF','MID','ATK'].forEach(zone=>{
+    const el=document.getElementById(`field-${zone}`);
+    if(!el) return;
+    el.innerHTML='';
+    (myField[zone]||[]).forEach(card=>el.appendChild(makeMiniCard(card,true,zone)));
+    if(isMyTurn&&fieldCount<11){
+      const h=document.createElement('div'); h.className='drop-hint-h'; h.textContent='+';
+      h.onclick=()=>{ if(selectedCard) placeSelected(zone); }; el.appendChild(h);
+    }
+  });
+}
+
+function renderMyHand(){
+  const el=document.getElementById('myHand'); el.innerHTML='';
+  myHand.forEach(card=>el.appendChild(makeHandCard(card)));
+}
+
+function renderOpponents(){
+  const topArea=document.getElementById('opp-top-area');
+  const rightArea=document.getElementById('opp-right-area');
+  const rightInner=document.getElementById('opp-right-inner');
+  const leftArea=document.getElementById('opp-left-area');
+  const leftInner=document.getElementById('opp-left-inner');
+  topArea.innerHTML=''; rightInner.innerHTML=''; leftInner.innerHTML='';
+  topArea.style.display=''; rightArea.style.display='none'; leftArea.style.display='none';
+
+  opponents.forEach((opp,i)=>{
+    if(i===0){
+      topArea.innerHTML=`<div class="opp-name">👤 ${opp.name}${opp.skipped?' ⏭':''}</div>`;
+      const row=document.createElement('div'); row.className='field-row';
+      const row1=document.createElement('div'); row1.style.cssText='display:flex;gap:6px;justify-content:center;margin-bottom:3px;';
+      ['MID','ATK'].forEach(zone=>{
+        const col=document.createElement('div'); col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:1px;';
+        const lbl=document.createElement('div'); lbl.style.cssText='font-size:7px;color:rgba(255,255,255,0.2);margin-bottom:1px;';
+        lbl.textContent=t(zone); col.appendChild(lbl);
+        const cards=document.createElement('div'); cards.className='zone-cards-h';
+        (opp.field[zone]||[]).forEach(card=>cards.appendChild(makeMiniCard(card,false,zone,opp)));
+        col.appendChild(cards); row1.appendChild(col);
+      });
+      topArea.appendChild(row1);
+      const row2=document.createElement('div'); row2.style.cssText='display:flex;gap:6px;justify-content:center;';
+      ['GK','DEF'].forEach(zone=>{
+        const col=document.createElement('div'); col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:1px;';
+        const lbl=document.createElement('div'); lbl.style.cssText='font-size:7px;color:rgba(255,255,255,0.2);margin-bottom:1px;';
+        lbl.textContent=t(zone); col.appendChild(lbl);
+        const cards=document.createElement('div'); cards.className='zone-cards-h';
+        (opp.field[zone]||[]).forEach(card=>cards.appendChild(makeMiniCard(card,false,zone,opp)));
+        col.appendChild(cards); row2.appendChild(col);
+      });
+      topArea.appendChild(row2);
+    }
+    else if(i===1){
+      rightArea.style.display='flex';
+      const nameEl=document.createElement('div'); nameEl.className='opp-name'; nameEl.textContent=`👤 ${opp.name}${opp.skipped?' ⏭':''}`;
+      rightInner.appendChild(nameEl); rightInner.appendChild(makeSideField(opp));
+    }
+    else if(i===2){
+      leftArea.style.display='flex';
+      const nameEl=document.createElement('div'); nameEl.className='opp-name'; nameEl.textContent=`👤 ${opp.name}${opp.skipped?' ⏭':''}`;
+      leftInner.appendChild(nameEl); leftInner.appendChild(makeSideField(opp));
+    }
+  });
+}
+
+function makeSideField(opp){
+  const sf=document.createElement('div'); sf.className='side-field';
+  ['GK','DEF','MID','ATK'].forEach(zone=>{
+    const sz=document.createElement('div'); sz.className='side-zone';
+    const sl=document.createElement('div'); sl.className='side-lbl'; sl.textContent=t(zone); sz.appendChild(sl);
+    const sc=document.createElement('div'); sc.className='side-cards';
+    (opp.field[zone]||[]).forEach(card=>{
+      // استخدم نفس تصميم mini-card بدل mini-card-xs
+      const el=document.createElement('div');
+      el.style.cssText='width:38px;height:54px;border-radius:5px;position:relative;overflow:hidden;flex-shrink:0;border:1px solid rgba(255,255,255,0.15);background:'+getCardBg(card)+';cursor:pointer;';
+      if(card.captain) el.style.borderColor='rgba(255,215,0,0.6)';
+      // صورة اللاعب
+      const imgSrc=getPlayerImage(card);
+      if(imgSrc){
+        const im=document.createElement('img');
+        im.src=imgSrc;
+        im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;';
+        im.loading='lazy';
+        el.appendChild(im);
+      }
+      // الرقم
+      if(!card.joker && card.number){
+        const n=document.createElement('span');
+        n.style.cssText='position:absolute;top:2px;left:2px;font-size:9px;font-weight:900;color:#fff;text-shadow:0 0 4px #000,1px 1px 0 #000;z-index:5;line-height:1;font-family:Orbitron,sans-serif;';
+        n.textContent=card.number; el.appendChild(n);
+      }
+      // نجمة
+      if(card.star||card.joker){
+        const s=document.createElement('span');
+        s.style.cssText='position:absolute;top:'+(card.joker?'2px':'13px')+';left:2px;font-size:5px;color:#ffd700;text-shadow:0 0 3px #000;z-index:5;line-height:1;';
+        s.textContent='⭐'; el.appendChild(s);
+        if(card.captain){
+          const c=document.createElement('span');
+          c.style.cssText='position:absolute;top:'+(card.joker?'9px':'20px')+';left:3px;font-size:5px;font-weight:900;color:#ffd700;text-shadow:0 0 3px #000;z-index:5;font-family:Orbitron,sans-serif;';
+          c.textContent='C'; el.appendChild(c);
+        }
+      }
+      if(isMyTurn){
+        el.onclick=(e)=>{
+          e.stopPropagation();
+          if(!selectedCard||selectedCard.type!=='special'){showToast(t('selectSpecialFirst'),true);return;}
+          handleOppCardClick(card,opp);
+        };
+      }
+      sc.appendChild(el);
+    });
+    sz.appendChild(sc); sf.appendChild(sz);
+  });
+  return sf;
+}
+
+function makeMiniCard(card,clickable,zone,oppData){
+  const el=document.createElement('div'); el.className='mini-card';
+  el.style.background=getCardBg(card);
+  if(card.captain) el.style.borderColor='rgba(255,215,0,0.7)';
+
+  // صورة اللاعب
+  const imgSrc=getPlayerImage(card);
+  if(imgSrc){
+    const imgEl=document.createElement('img');
+    imgEl.src=imgSrc;
+    imgEl.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block;';
+    imgEl.loading='lazy';
+    el.appendChild(imgEl);
+  }
+
+  // الرقم — أعلى الشمال
+  if(!card.joker && card.number){
+    const numEl=document.createElement('span');
+    numEl.style.cssText='position:absolute;top:3px;left:4px;font-family:Orbitron,sans-serif;font-size:13px;font-weight:900;color:#fff;text-shadow:0 0 6px #000,1px 1px 0 #000;z-index:5;line-height:1;';
+    numEl.textContent=card.number;
+    el.appendChild(numEl);
+  }
+
+  // نجمة تحت الرقم
+  if(card.star || card.joker){
+    const s=document.createElement('span');
+    s.style.cssText='position:absolute;top:'+(card.joker?'3px':'19px')+';left:3px;font-size:7px;color:#ffd700;text-shadow:0 0 4px #000;z-index:5;line-height:1;';
+    s.textContent='⭐';
+    el.appendChild(s);
+    // C تحت النجمة لو كابتن
+    if(card.captain){
+      const cap=document.createElement('span');
+      cap.style.cssText='position:absolute;top:'+(card.joker?'13px':'29px')+';left:4px;font-size:7px;font-weight:900;color:#ffd700;text-shadow:0 0 4px #000;z-index:5;line-height:1;font-family:Orbitron,sans-serif;';
+      cap.textContent='C';
+      el.appendChild(cap);
+    }
+  }
+
+  // إنذار أصفر
+  const yellows=oppData?oppData.yellows:myYellows;
+  if(yellows&&yellows[card.id]){const y=document.createElement('div');y.className='yellow-mark';el.appendChild(y);}
+
+  if(oppData && isMyTurn){
+    el.style.cursor='pointer';
+    el.onclick=(e)=>{
+      e.stopPropagation();
+      if(!selectedCard || selectedCard.type!=='special'){showToast(t('selectSpecialFirst'),true);return;}
+      handleOppCardClick(card, oppData);
+    };
+  } else if(clickable && isMyTurn){
+    el.style.cursor='pointer';
+    el.onclick=()=>{
+      if(selectedCard&&selectedCard.type==='special'&&selectedCard.name==='Trash Player'){
+        playSpecial({cardId:selectedCard.id,targetPlayerIdx:myIndex,targetCardId:card.id});
+        placedThisTurn++; selectedCard=null; renderGame();
+      } else if(card.joker){
+        const zones=['GK','DEF','MID','ATK'].filter(z=>z!==zone);
+        showZonePopup(zones,(newZone)=>{moveJoker(card.id,newZone);});
+      } else if(selectedCard&&selectedCard.type==='special'&&selectedCard.name==='Swap'){
+        mySwapCard=card; showToast(t('nowSelectOpponent'));
+      } else { 
+        placeSelected(zone); 
+      }
+    };
+  }
+  return el;
+}
+
+// خريطة الصور — كل رقم عنده مصفوفة لاعبين
+const playerImgMap = {
+  'JOKER':  ['images/gullit.png'],
+  'GK_1':   ['images/gk_courtois.png','images/gk_neuer.png','images/gk_buffon.png'],
+  'DEF_2':  ['images/def2_cafu.png','images/def2_lahm.png'],
+  'DEF_3':  ['images/def3_maldini.png','images/def3_roberto.png'],
+  'DEF_4':  ['images/def4_beckenbauer.png','images/def4_ramos.png'],
+  'DEF_5':  ['images/def5_puyol.png','images/def5_cannavaro.png'],
+  'MID_6':  ['images/mid6_xavi.png','images/mid6_pogba.png'],
+  'MID_7':  ['images/mid7_beckham.png','images/mid7_debruyne.png'],
+  'MID_8':  ['images/mid8_iniesta.png','images/mid8_kroos.png'],
+  'ATK_9':  ['images/atk9_ronaldo.png','images/atk9_r9.png'],
+  'ATK_10': ['images/atk10_messi.png','images/atk10_pele.png'],
+  'ATK_11': ['images/atk11_neymar.png','images/atk11_salah.png'],
+};
+
+// preload كل الصور مرة واحدة عشان ماتتحملش كل مرة
+function preloadAllImages(){
+  const all=[];
+  Object.values(playerImgMap).forEach(arr=>arr.forEach(src=>all.push(src)));
+  all.forEach(src=>{const i=new Image();i.src=src;});
+}
+
+// كاش عشان نفس الكارت (نفس id) دايما نفس الصورة
+const cardImgCache = {};
+function getPlayerImage(card){
+  if(cardImgCache[card.id]) return cardImgCache[card.id];
+  const key = card.joker ? 'JOKER' : (card.zone + '_' + card.number);
+  const arr = playerImgMap[key];
+  if(!arr || arr.length===0) return null;
+  // استخدم imgIdx من السيرفر لو موجود، وإلا random
+  const idx = (card.imgIdx !== undefined) ? (card.imgIdx % arr.length) : Math.floor(Math.random() * arr.length);
+  const img = arr[idx];
+  cardImgCache[card.id] = img;
+  return img;
+}
+
+function makeHandCard(card){
+  const el=document.createElement('div');
+  el.className=`hand-card card-${card.joker?'JOKER':(card.type==='special'?'special':card.zone)}`;
+  if(selectedCard&&selectedCard.id===card.id) el.classList.add('selected');
+  if(card.captain && card.type==='player') el.style.borderColor='rgba(255,215,0,0.7)';
+
+  if(card.type==='player'){
+    // صورة اللاعب
+    const imgSrc=getPlayerImage(card);
+    if(imgSrc){
+      const imgEl=document.createElement('img');
+      imgEl.src=imgSrc;
+      imgEl.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block;';
+      imgEl.loading='lazy';
+      el.appendChild(imgEl);
+    }
+
+    // الرقم — أعلى الشمال
+    if(!card.joker && card.number){
+      const numDiv=document.createElement('div');
+      numDiv.style.cssText='position:absolute;top:3px;left:4px;font-family:Orbitron,sans-serif;font-size:13px;font-weight:900;color:#fff;text-shadow:0 0 8px #000,1px 1px 0 #000,-1px -1px 0 #000;z-index:5;line-height:1;';
+      numDiv.textContent=card.number;
+      el.appendChild(numDiv);
+    }
+
+    // نجمة تحت الرقم
+    if(card.star || card.joker){
+      const sc=document.createElement('div');
+      sc.style.cssText='position:absolute;top:'+(card.joker?'3px':'19px')+';left:3px;font-size:7px;z-index:5;color:#ffd700;text-shadow:0 0 5px #000;line-height:1;';
+      sc.textContent='⭐';
+      el.appendChild(sc);
+      // C تحت النجمة لو كابتن
+      if(card.captain){
+        const cap=document.createElement('div');
+        cap.style.cssText='position:absolute;top:'+(card.joker?'13px':'29px')+';left:4px;font-size:7px;font-weight:900;color:#ffd700;text-shadow:0 0 4px #000;z-index:5;line-height:1;font-family:Orbitron,sans-serif;';
+        cap.textContent='C';
+        el.appendChild(cap);
+      }
+    }
+
+  } else {
+    // كروت خاصة
+    const n=document.createElement('div');
+    n.style.cssText='font-size:8px;color:#fff;text-align:center;padding:4px;line-height:1.4;z-index:2;position:relative;font-family:Tajawal,sans-serif;font-weight:700;';
+    n.textContent=currentLang==='ar'?t(card.name):card.name;
+    el.appendChild(n);
+  }
+  if(isMyTurn){
+    el.onclick=()=>{
+      if(selectedCard&&selectedCard.id===card.id){
+        selectedCard=null;
+        renderMyHand();
+        if(numPlayers===2) renderMyFormation(); else renderMyField();
+        return;
+      }
+      selectedCard=card;
+      renderMyHand();
+      if(numPlayers===2) renderMyFormation(); else renderMyField();
+      if(card.type==='special'){
+        if(card.name==='Trash Player') showToast(t('selectToRemove'));
+        else if(card.name==='Cancel Order') showToast(t('useAutomatically'));
+        else showToast(t('selectOpponentCard'));
+      }
+    };
+  }
+  return el;
+}
+
+function placeSelected(zone){
+  if(!selectedCard||!isMyTurn) return;
+  if(selectedCard.type==='special') return showToast(t('cannotPlaceSpecial'),true);
+  const fieldCount=Object.values(myField).reduce((s,z)=>s+z.length,0);
+  if(fieldCount>=11) return showToast(t('fieldFull'),true);
+  const ZONE_LIMITS={GK:1,DEF:5,MID:4,ATK:3};
+  if(selectedCard.zone==='JOKER'){
+    showZonePopup(['GK','DEF','MID','ATK'],(z)=>{
+      if(myField[z].length>=ZONE_LIMITS[z]) return showToast(t('maxLimitInZone',t(z),ZONE_LIMITS[z]),true);
+      placeCard(selectedCard.id,z);placedThisTurn++;selectedCard=null;
+    });
+    return;
+  }
+  const tz=selectedCard.zone;
+  if(tz!==zone) return showToast(t('mustPlaceCorrect',t(tz)),true);
+  if(myField[tz].length>=ZONE_LIMITS[tz]) return showToast(t('maxLimitInZone',t(tz),ZONE_LIMITS[tz]),true);
+  placeCard(selectedCard.id,zone);
+  placedThisTurn++; selectedCard=null;
+}
+
+function handleOppCardClick(card,oppData){
+  if(!selectedCard||selectedCard.type!=='special') return;
+  const oppIdx=opponents.indexOf(oppData);
+  const realIdx=oppIdx>=myIndex?oppIdx+1:oppIdx;
+  const sc=selectedCard;
+  if(selectedCard.name==='Swap'){
+    if(!mySwapCard) return showToast(t('selectYourCardFirst'),true);
+    playSpecial({cardId:selectedCard.id,targetPlayerIdx:realIdx,targetCardId:card.id,myCardId:mySwapCard.id});
+    trackSpecialPlayed(sc);
+    mySwapCard=null;
+    placedThisTurn++; selectedCard=null; renderGame();
+  } else if(selectedCard.name==='Contract'){
+    if(card.zone==='JOKER'){
+      const ri=realIdx, ci=card.id;
+      showZonePopup(['GK','DEF','MID','ATK'],(z)=>{
+        playSpecial({cardId:sc.id,targetPlayerIdx:ri,targetCardId:ci,targetZone:z});
+        trackSpecialPlayed(sc);
+        placedThisTurn++; selectedCard=null; renderGame();
+      });
+    } else {
+      playSpecial({cardId:selectedCard.id,targetPlayerIdx:realIdx,targetCardId:card.id,targetZone:card.zone});
+      trackSpecialPlayed(sc);
+      placedThisTurn++; selectedCard=null; renderGame();
+    }
+  } else if(selectedCard.name==='Loan'){
+    // تحقق إن الملعب مش ممتلئ قبل ما تحسب اللعبة
+    const myFieldCount=Object.values(myField).reduce((s,z)=>s+z.length,0);
+    const targetZone=card.zone==='JOKER'?'ATK':card.zone;
+    const ZONE_LIMITS={GK:1,DEF:5,MID:4,ATK:3};
+    if(myFieldCount>=11){
+      showToast(currentLang==='ar'?'الملعب ممتلئ (11 لاعب)! ما ينفعش إعارة':'Field is full (11 players)! Cannot loan',true);
+      return; // لا تحسب لعبة، لا تمسح selectedCard
+    }
+    if(myField[targetZone]&&myField[targetZone].length>=ZONE_LIMITS[targetZone]){
+      showToast(currentLang==='ar'?`المركز ممتلئ (${t(targetZone)})! ما ينفعش إعارة`:`Zone full (${t(targetZone)})! Cannot loan`,true);
+      return; // لا تحسب لعبة
+    }
+    playSpecial({cardId:selectedCard.id,targetPlayerIdx:realIdx,targetCardId:card.id,targetZone});
+    trackSpecialPlayed(sc);
+    placedThisTurn++; selectedCard=null; renderGame();
+  } else {
+    playSpecial({cardId:selectedCard.id,targetPlayerIdx:realIdx,targetCardId:card.id});
+    trackSpecialPlayed(sc);
+    placedThisTurn++; selectedCard=null; renderGame();
+  }
+}
+
+let zoneCallback=null;
+function showZonePopup(zones,cb){
+  zoneCallback=cb; const btns=document.getElementById('zoneBtns'); btns.innerHTML='';
+  const labels={
+    GK: t('zoneGoalkeeper'),
+    DEF: t('zoneDefense'),
+    MID: t('zoneMidfield'),
+    ATK: t('zoneAttack')
+  };
+  zones.forEach(z=>{
+    const b=document.createElement('button');
+    b.className=`zone-btn zone-btn-${z}`;
+    b.textContent=labels[z];
+    b.onclick=()=>{closeZonePopup();cb(z);};
+    btns.appendChild(b);
+  });
+  document.getElementById('zone-popup').classList.add('show');
+}
+
+function closeZonePopup(){
+  document.getElementById('zone-popup').classList.remove('show');
+  zoneCallback=null;
+}
+
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+}
+
+function showToast(msg,isError=false){
+  const t=document.createElement('div');
+  t.className=`toast${isError?' error':''}`;
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3100);
+}
+
+function closeError(){
+  document.getElementById('errorPopup').classList.remove('show');
+}
+
+/* ══════════════════════════════════════════
+   GAME EFFECTS
+══════════════════════════════════════════ */
+
+// Particles
+function spawnParticles(x,y,color,count){for(let i=0;i<(count||8);i++){const p=document.createElement('div');p.className='particle';const a=(i/(count||8))*Math.PI*2;const d=28+Math.random()*36;p.style.cssText=`left:${x}px;top:${y}px;background:${color||'#00e5ff'};--dx:${Math.cos(a)*d}px;--dy:${Math.sin(a)*d}px;`;document.body.appendChild(p);setTimeout(()=>p.remove(),700);}}
+function fxFlash(type){const el=document.createElement('div');el.className='fx-flash '+(type||'cyan');document.body.appendChild(el);setTimeout(()=>el.remove(),450);}
+function fxFloat(text,x,y,color){const el=document.createElement('div');el.className='float-txt';el.style.cssText=`left:${x}px;top:${y}px;color:${color||'#00e5ff'};text-shadow:0 0 8px ${color||'#00e5ff'};`;el.textContent=text;document.body.appendChild(el);setTimeout(()=>el.remove(),1000);}
+function fxSweep(){const el=document.createElement('div');el.className='turn-sweep';document.body.appendChild(el);setTimeout(()=>el.remove(),600);}
+function fxConfetti(){const cols=['#ffd700','#00e5ff','#ff2d55','#00e676','#ff9500','#fff'];for(let i=0;i<55;i++){setTimeout(()=>{const c=document.createElement('div');c.className='confetti-p';const col=cols[Math.floor(Math.random()*cols.length)];const x=Math.random()*window.innerWidth;const dur=1.4+Math.random()*1.8;const sz=5+Math.random()*7;c.style.cssText=`left:${x}px;top:-15px;width:${sz}px;height:${sz}px;background:${col};border-radius:${Math.random()>0.5?'50%':'2px'};animation-duration:${dur}s;`;document.body.appendChild(c);setTimeout(()=>c.remove(),dur*1000+100);},i*38);}}
+
+/* ══ FLYING CARD ANIMATION ══
+   cardEl = DOM element of the hand card
+   targetRowId = e.g. 'my-row-DEF'
+   zone = 'DEF' etc
+*/
+function flyCardToField(cardEl, targetRowId, zone, cb){
+  if(!cardEl){ if(cb)cb(); return; }
+  const srcR = cardEl.getBoundingClientRect();
+
+  // snapshot clone
+  const clone = cardEl.cloneNode(true);
+  clone.className = 'flying-card';
+  clone.style.cssText = `
+    width:${srcR.width}px; height:${srcR.height}px;
+    left:${srcR.left}px; top:${srcR.top}px;
+    background:${cardEl.style.background||''};
+    will-change:transform,left,top,opacity;
+  `;
+  // copy background image if img child
+  const img = cardEl.querySelector('img');
+  if(img){ const ci=clone.querySelector('img'); if(ci) ci.src=img.src; }
+  document.body.appendChild(clone);
+
+  // find target position — the row center
+  const row = document.getElementById(targetRowId);
+  let tx = window.innerWidth/2, ty = window.innerHeight/2;
+  if(row){
+    const rr = row.getBoundingClientRect();
+    tx = rr.left + rr.width/2 - srcR.width/2;
+    ty = rr.top  + rr.height/2 - srcR.height/2;
+  }
+
+  const dur = 320; // ms
+  const startTime = performance.now();
+  const sx = srcR.left, sy = srcR.top;
+
+  function step(now){
+    const prog = Math.min((now - startTime)/dur, 1);
+    // ease out cubic
+    const ease = 1 - Math.pow(1-prog, 3);
+    const cx2 = sx + (tx-sx)*ease;
+    const cy2 = sy + (ty-sy)*ease;
+    // arc — goes up a bit in the middle
+    const arc = Math.sin(prog*Math.PI)*(-40);
+    const sc = 1 - prog*0.35;
+    clone.style.left = cx2+'px';
+    clone.style.top  = (cy2+arc)+'px';
+    clone.style.transform = `scale(${sc}) rotate(${prog*-10}deg)`;
+    clone.style.opacity = prog>0.85 ? (1-(prog-0.85)/0.15) : '1';
+    if(prog<1){ requestAnimationFrame(step); }
+    else{
+      clone.remove();
+      // impact on last placed card
+      if(row){
+        const cards = row.querySelectorAll('.form-card');
+        const last = cards[cards.length-1];
+        if(last){ last.classList.remove('card-impact'); void last.offsetWidth; last.classList.add('card-impact'); setTimeout(()=>last.classList.remove('card-impact'),350); }
+        // particles at target
+        const zc={GK:'#f5a623',DEF:'#4a90d9',MID:'#27ae60',ATK:'#e74c3c',JOKER:'#8e44ad'};
+        if(row){const rr2=row.getBoundingClientRect();spawnParticles(rr2.left+rr2.width/2,rr2.top+rr2.height/2,zc[zone]||'#00e5ff',7);}
+      }
+      if(cb)cb();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+// store last selected card DOM element for flying animation
+let _lastSelectedCardEl = null;
+let _lastSelectedCard = null;
+
+/* ══ BURNED ZONE — FULL (كل الكروت) ══ */
+function buildBurnedCardEl(card, size){
+  // size: 'sm' = 30x42, 'md' = 38x54
+  const w = size==='sm'?30:38, h = size==='sm'?42:54;
+  const el = document.createElement('div');
+  el.style.cssText = `width:${w}px;height:${h}px;border-radius:5px;position:relative;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(255,80,80,0.5);background:${getCardBg(card)};`;
+  if(card.type==='player'){
+    const img=getPlayerImage(card);
+    if(img){const im=document.createElement('img');im.src=img;im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;';el.appendChild(im);}
+    if(!card.joker&&card.number){const n=document.createElement('span');n.style.cssText='position:absolute;top:1px;left:2px;font-size:9px;font-weight:900;color:#fff;text-shadow:0 0 4px #000;z-index:5;font-family:Orbitron,sans-serif;';n.textContent=card.number;el.appendChild(n);}
+  } else {
+    const n=document.createElement('span');n.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:7px;color:#fff;text-align:center;padding:2px;font-family:Tajawal,sans-serif;font-weight:700;z-index:5;line-height:1.2;';
+    n.textContent=currentLang==='ar'?t(card.name||''):card.name||'?';el.appendChild(n);
+  }
+  const fl=document.createElement('div');
+  fl.style.cssText='position:absolute;bottom:0;left:0;right:0;background:rgba(160,0,0,0.85);font-size:5px;text-align:center;color:#fff;padding:1px;z-index:6;';
+  fl.textContent=card.burnedBy==='red'?'🔴':card.burnedBy==='yellow2'?'🟡🟡':card.type==='special'?'⚡':'🔥';
+  el.appendChild(fl);
+  return el;
+}
+
+function renderBurnedZone(){
+  const zone=document.getElementById('burned-zone');
+  if(!zone)return;
+  zone.innerHTML='<div style="font-size:7px;color:rgba(255,100,100,0.9);text-shadow:0 1px 3px #000;text-align:center;font-family:Tajawal,sans-serif;line-height:1;margin-bottom:2px;">🔥</div>';
+
+  const items=[...gameBurnedPile,...((window._lastSpecialCards)||[])];
+
+  // Stack element — shows top card + click to expand
+  const stackEl=document.createElement('div');
+  stackEl.id='burned-stack';
+  stackEl.style.cssText='position:relative;width:38px;height:54px;cursor:pointer;';
+  zone.appendChild(stackEl);
+
+  if(items.length===0){ zone.appendChild(Object.assign(document.createElement('div'),{style:'font-size:8px;color:rgba(255,255,255,0.15);text-align:center;margin-top:2px;',textContent:'—'})); return; }
+
+  // Top card (last item)
+  const top=items[items.length-1];
+  const topEl=buildBurnedCardEl(top,'md');
+  topEl.style.position='absolute'; topEl.style.inset='0';
+  stackEl.appendChild(topEl);
+
+  // Stack count badge
+  if(items.length>1){
+    const badge=document.createElement('div');
+    badge.style.cssText='position:absolute;top:-5px;right:-5px;background:#ff2d55;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-family:Orbitron,sans-serif;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:10;border:1.5px solid #000;';
+    badge.textContent=items.length;
+    stackEl.appendChild(badge);
+  }
+
+  // Tooltip on hover — shows all cards
+  const tooltip=document.createElement('div');
+  tooltip.className='burned-tooltip';
+  const ttitle=document.createElement('div'); ttitle.className='burned-tooltip-title';
+  ttitle.textContent=currentLang==='ar'?'🔥 الكروت المحروقة':'🔥 BURNED';
+  tooltip.appendChild(ttitle);
+
+  // show newest first
+  [...items].reverse().forEach(card=>{
+    const row=document.createElement('div'); row.className='bt-row';
+    const mini=buildBurnedCardEl(card,'sm'); row.appendChild(mini);
+    const info=document.createElement('div'); info.className='bt-info';
+    let name='';
+    if(card.type==='player'&&!card.joker) name=(card.zone||'')+(card.number?' #'+card.number:'');
+    else if(card.joker) name='Gullit ⭐';
+    else name=currentLang==='ar'?t(card.name||''):card.name||'?';
+    const nm=document.createElement('div'); nm.className='bt-name'; nm.textContent=name;
+    const fr=document.createElement('div'); fr.className='bt-from';
+    fr.textContent=(card.burnedFrom||'')?(currentLang==='ar'?'من: ':'from: ')+(card.burnedFrom):'';
+    const wy=document.createElement('div'); wy.className='bt-why';
+    wy.textContent=card.burnedBy==='red'?'🔴 Red Card':card.burnedBy==='yellow2'?'🟡🟡 2 Yellows':card.type==='special'?'⚡ Special':'🔥 Overflow';
+    info.appendChild(nm); if(fr.textContent)info.appendChild(fr); info.appendChild(wy);
+    row.appendChild(info); tooltip.appendChild(row);
+  });
+  stackEl.appendChild(tooltip);
+}
+
+/* ══ CHAT ══ */
+let chatOpen=false, chatUnread=0;
+
+function toggleChat(){
+  chatOpen=!chatOpen;
+  const box=document.getElementById('chat-box');
+  const btn=document.getElementById('chat-toggle');
+  if(chatOpen){
+    box.classList.add('open');
+    btn.classList.remove('has-unread');
+    chatUnread=0;
+    setTimeout(()=>{ const m=document.getElementById('chat-messages'); if(m)m.scrollTop=m.scrollHeight; },50);
+  } else {
+    box.classList.remove('open');
+  }
+}
+
+function addChatMsg(sender, text, mine, system){
+  const msgs=document.getElementById('chat-messages'); if(!msgs)return;
+  const div=document.createElement('div');
+  div.className='chat-msg '+(system?'system':mine?'mine':'theirs');
+  if(!system&&!mine&&sender){const s=document.createElement('div');s.className='msg-sender';s.textContent=sender;div.appendChild(s);}
+  const txt=document.createElement('span'); txt.textContent=text; div.appendChild(txt);
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+  if(!chatOpen&&!mine&&!system){ chatUnread++; const btn=document.getElementById('chat-toggle'); if(btn)btn.classList.add('has-unread'); }
+}
+
+function sendChatMsg(){
+  const inp=document.getElementById('chat-input'); if(!inp)return;
+  const text=inp.value.trim(); if(!text)return;
+  inp.value='';
+  sendChatMsg_direct(text);
+  addChatMsg(myName,text,true,false);
+}
+
+function sendQuickMsg(text){
+  sendChatMsg_direct(text);
+  addChatMsg(myName,text,true,false);
+}
+
+
+// Show chat toggle when game starts
+
+/* ══ PITCH GLOW + TURN BADGE ══ */
+const _origRG=renderGame;
+renderGame=function(){
+  _origRG.apply(this,arguments);
+  const pb=document.getElementById('pitch-bg');
+  const tb=document.getElementById('turnIndicator');
+  if(isMyTurn){ pb&&pb.classList.add('my-turn-glow'); tb&&tb.classList.add('my-turn-pulse'); }
+  else{ pb&&pb.classList.remove('my-turn-glow'); tb&&tb.classList.remove('my-turn-pulse'); }
+};
+
+  } else {
+    _origPlaceSelected.apply(this,arguments);
+  }
+};
+
+/* ══ CARD PLACED BOUNCE ON TARGET (after server confirms) ══ */
+const _origRMF2=renderMyFormation;
+renderMyFormation=function(){
+  const bef={};['GK','DEF','MID','ATK'].forEach(z=>{bef[z]=(myField[z]||[]).length;});
+  _origRMF2.apply(this,arguments);
+  ['GK','DEF','MID','ATK'].forEach(z=>{
+    if((myField[z]||[]).length>bef[z]){
+      const rowId=z==='GK'?'my-row-GK':'my-row-'+z;
+      const row=document.getElementById(rowId);
+      if(row){const cards=row.querySelectorAll('.form-card');const last=cards[cards.length-1];if(last){last.classList.remove('card-placed');void last.offsetWidth;last.classList.add('card-placed');}}
+    }
+  });
+};
+
+const _origROF2=renderOppFormation;
+renderOppFormation=function(){
+  const opp=opponents[0];const bef={};
+  if(opp)['GK','DEF','MID','ATK'].forEach(z=>{bef[z]=(opp.field[z]||[]).length;});
+  _origROF2.apply(this,arguments);
+  if(opp)['GK','DEF','MID','ATK'].forEach(z=>{
+    if((opp.field[z]||[]).length>(bef[z]||0)){
+      const row=document.getElementById('opp-row-'+z);
+      if(row){
+        const cards=row.querySelectorAll('.form-card');const last=cards[cards.length-1];
+        if(last){
+          last.classList.remove('card-placed');void last.offsetWidth;last.classList.add('card-placed');
+          const rr=last.getBoundingClientRect();
+          const zc={GK:'#f5a623',DEF:'#4a90d9',MID:'#27ae60',ATK:'#e74c3c',JOKER:'#8e44ad'};
+          spawnParticles(rr.left+rr.width/2,rr.top+rr.height/2,zc[z]||'#00e5ff',6);
+        }
+      }
+    }
+  });
+};
 
 <script src="game.js"></script>
 </body>

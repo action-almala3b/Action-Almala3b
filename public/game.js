@@ -478,3 +478,8 @@ function copyCode() {
   navigator.clipboard.writeText(roomCode);
   showToast(t('codeCopied'));
 }
+
+function sendChatMsg_direct(text) {
+  if (!roomChannel) return;
+  roomChannel.send({ type:'broadcast', event:'chat', payload:{ text, name:myName, socketId:mySocketId } });
+}
