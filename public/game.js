@@ -418,7 +418,7 @@ function handleUpdate(room) {
   if (room.state === 'playing') {
     const gameEl = document.getElementById('game');
     if (!gameEl.classList.contains('active')) {
-      hideBannerAd();
+      // hideBannerAd removed
       showScreen('game');
       const ct = document.getElementById('chat-toggle');
       if (ct) ct.style.display = 'flex';
